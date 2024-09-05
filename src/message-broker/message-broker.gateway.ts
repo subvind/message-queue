@@ -13,7 +13,7 @@ export class MessageBrokerGateway {
   @WebSocketServer()
   server: Server;
 
-  private subscriptions: Map<Socket, Set<string>> = new Map();
+  private subscriptions: Map<string, Set<Socket>> = new Map();
 
   constructor(private readonly messageBrokerService: MessageBrokerService) {
     this.subscribeToAllExchanges();
@@ -21,12 +21,13 @@ export class MessageBrokerGateway {
 
   private subscribeToAllExchanges() {
     this.messageBrokerService.onMessage((exchange, queue, message) => {
-      this.server.sockets.sockets.forEach((socket: Socket) => {
-        const subscriptionKey = `${exchange}:${queue}`;
-        if (this.subscriptions.get(socket)?.has(subscriptionKey)) {
+      const subscriptionKey = `${exchange}:${queue}`;
+      const subscribers = this.subscriptions.get(subscriptionKey);
+      if (subscribers) {
+        subscribers.forEach((socket) => {
           socket.emit('message', { exchange, queue, message });
-        }
-      });
+        });
+      }
     });
   }
 
@@ -38,11 +39,11 @@ export class MessageBrokerGateway {
     const { exchange, queue } = data;
     const subscriptionKey = `${exchange}:${queue}`;
 
-    if (!this.subscriptions.has(client)) {
-      this.subscriptions.set(client, new Set());
+    if (!this.subscriptions.has(subscriptionKey)) {
+      this.subscriptions.set(subscriptionKey, new Set());
     }
 
-    this.subscriptions.get(client).add(subscriptionKey);
+    this.subscriptions.get(subscriptionKey).add(client);
 
     const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
       client.emit('message', { exchange, queue, message });
@@ -50,7 +51,13 @@ export class MessageBrokerGateway {
 
     if (success) {
       client.on('disconnect', () => {
-        this.subscriptions.delete(client);
+        const subscribers = this.subscriptions.get(subscriptionKey);
+        if (subscribers) {
+          subscribers.delete(client);
+          if (subscribers.size === 0) {
+            this.subscriptions.delete(subscriptionKey);
+          }
+        }
         this.messageBrokerService.unsubscribe(exchange, queue, () => {});
       });
       return { status: 'ok', message: 'Subscribed successfully' };

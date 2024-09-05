@@ -1,4 +1,6 @@
+
 import { MessageStorageService } from '../message-storage/message-storage.service';
+
 import { Queue } from 'src/queue/queue';
 
 export class Exchange {
@@ -16,10 +18,11 @@ export class Exchange {
   }
 
   async publish(routingKey: string, message: any) {
-    const targetQueue = this.queues.get(routingKey);
-    if (targetQueue) {
-      await targetQueue.enqueue(message);
-    }
+    this.queues.forEach((queue, queueName) => {
+      if (queueName === routingKey) {
+        queue.enqueue(message);
+      }
+    });
   }
 
   async consume(queueName: string): Promise<any> {
