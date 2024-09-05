@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 async function testProducer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
+  const baseUrl = 'http://localhost:3000/message-broker';
 
   try {
     // Create an exchange

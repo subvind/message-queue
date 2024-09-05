@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 async function testConsumer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
+  const baseUrl = 'http://localhost:3000/message-broker';
 
   try {
     while (true) {

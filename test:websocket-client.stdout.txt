@@ -1,0 +1,2 @@
+Connected to WebSocket server
+Subscription response: { status: 'ok', message: 'Subscribed successfully' }
