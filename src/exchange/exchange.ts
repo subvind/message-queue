@@ -1,7 +1,7 @@
 
-import { MessageStorageService } from './message-storage.service';
+import { MessageStorageService } from '../message-storage/message-storage.service';
 
-import { Queue } from './queue';
+import { Queue } from 'src/queue/queue';
 
 export class Exchange {
   private queues: Map<string, Queue> = new Map();

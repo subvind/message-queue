@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { MessageStorageService } from './message-storage.service';
+import { MessageStorageService } from '../message-storage/message-storage.service';
 
 export class Queue {
   private eventEmitter = new EventEmitter();

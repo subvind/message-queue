@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { MessageStorageService } from './message-storage.service';
-import { Exchange } from './exchange';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+import { Exchange } from '../exchange/exchange';
 import { EventEmitter } from 'events';
 
 @Injectable()

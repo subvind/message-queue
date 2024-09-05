@@ -1,12 +1,27 @@
 Connected to WebSocket server
 Subscription response: { status: 'ok', message: 'Subscribed successfully' }
 Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 1 for Queue 1'
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
 }
 Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 2 for Queue 1'
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 5'
 }
