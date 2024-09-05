@@ -272,6 +272,17 @@ export function dot(a: V3, b: V3): number {
 
 You will now be given the actual INPUT you must work with.
 
+<FILE path="/home/travis/Projects/message-queue/src/main.ts">
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3030);
+}
+bootstrap();
+
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
 import {
   WebSocketGateway,
@@ -288,7 +299,16 @@ export class MessageBrokerGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly messageBrokerService: MessageBrokerService) {}
+  constructor(private readonly messageBrokerService: MessageBrokerService) {
+    // Subscribe to all exchanges and queues
+    this.subscribeToAllExchanges();
+  }
+
+  private subscribeToAllExchanges() {
+    this.messageBrokerService.onMessage((exchange, queue, message) => {
+      this.server.emit('message', { exchange, queue, message });
+    });
+  }
 
   @SubscribeMessage('subscribe')
   handleSubscribe(
@@ -312,16 +332,17 @@ export class MessageBrokerGateway {
     }
   }
 }
-
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
 import { Injectable } from '@nestjs/common';
 import { MessageStorageService } from './message-storage.service';
 import { Exchange } from './exchange';
+import { EventEmitter } from 'events';
 
 @Injectable()
 export class MessageBrokerService {
   private exchanges: Map<string, Exchange> = new Map();
+  private eventEmitter: EventEmitter = new EventEmitter();
 
   constructor(private messageStorage: MessageStorageService) {}
 
@@ -339,6 +360,7 @@ export class MessageBrokerService {
     const exchange = this.getExchange(exchangeName);
     if (exchange) {
       await exchange.publish(routingKey, message);
+      this.eventEmitter.emit('message', exchangeName, routingKey, message);
       return true;
     }
     return false;
@@ -382,8 +404,11 @@ export class MessageBrokerService {
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
     return await this.messageStorage.getQueueLength(exchangeName, queueName);
   }
-}
 
+  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+}
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-storage.service.ts">
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
@@ -430,48 +455,6 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
     const queueKey = this.getQueueKey(exchangeName, queueName);
     return await this.redisClient.llen(queueKey);
-  }
-}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/queue.ts">
-import { EventEmitter } from 'events';
-import { MessageStorageService } from './message-storage.service';
-
-export class Queue {
-  private eventEmitter = new EventEmitter();
-
-  constructor(
-    private exchangeName: string,
-    private queueName: string,
-    private messageStorage: MessageStorageService
-  ) {}
-
-  async enqueue(message: any) {
-    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
-    this.eventEmitter.emit('message', message);
-  }
-
-  async dequeue(): Promise<any> {
-    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-    if (message) {
-      return message.content;
-    }
-    
-    return new Promise((resolve) => {
-      this.eventEmitter.once('message', async (newMessage) => {
-        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-        resolve(newMessage);
-      });
-    });
-  }
-
-  subscribe(callback: (message: any) => void) {
-    this.eventEmitter.on('message', callback);
-  }
-
-  unsubscribe(callback: (message: any) => void) {
-    this.eventEmitter.off('message', callback);
   }
 }
 
@@ -527,20 +510,139 @@ export class Exchange {
   }
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/main.ts">
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/queue.ts">
+import { EventEmitter } from 'events';
+import { MessageStorageService } from './message-storage.service';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3030);
+export class Queue {
+  private eventEmitter = new EventEmitter();
+
+  constructor(
+    private exchangeName: string,
+    private queueName: string,
+    private messageStorage: MessageStorageService
+  ) {}
+
+  async enqueue(message: any) {
+    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
+    this.eventEmitter.emit('message', message);
+  }
+
+  async dequeue(): Promise<any> {
+    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+    if (message) {
+      return message.content;
+    }
+    
+    return new Promise((resolve) => {
+      this.eventEmitter.once('message', async (newMessage) => {
+        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+        resolve(newMessage);
+      });
+    });
+  }
+
+  subscribe(callback: (message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+
+  unsubscribe(callback: (message: any) => void) {
+    this.eventEmitter.off('message', callback);
+  }
 }
-bootstrap();
 
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-producer.ts">
+import axios from 'axios';
+
+async function testProducer() {
+  const baseUrl = 'http://localhost:3030/message-broker';
+
+  try {
+    // Create an exchange
+    await axios.post(`${baseUrl}/exchange`, { name: 'test-exchange' });
+    console.log('Exchange created');
+
+    // Bind a queue to the exchange
+    await axios.post(`${baseUrl}/bind`, {
+      exchange: 'test-exchange',
+      queue: 'test-queue',
+      routingKey: 'test-queue'
+    });
+    console.log('Queue bound to exchange');
+
+    // Publish messages
+    for (let i = 0; i < 5; i++) {
+      await axios.post(`${baseUrl}/publish`, {
+        exchange: 'test-exchange',
+        routingKey: 'test-queue',
+        message: `Test message ${i + 1}`
+      });
+      console.log(`Published message ${i + 1}`);
+    }
+
+    // Get queue length
+    const response = await axios.get(`${baseUrl}/queue-length/test-exchange/test-queue`);
+    console.log(`Queue length: ${response.data.length}`);
+
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testProducer();
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-consumer.ts">
+import axios from 'axios';
+
+async function testConsumer() {
+  const baseUrl = 'http://localhost:3030/message-broker';
+
+  try {
+    while (true) {
+      const response = await axios.get(`${baseUrl}/consume/test-exchange/test-queue`);
+      if (response.data.status === 'ok') {
+        console.log('Received message:', response.data.message);
+      } else {
+        console.log('No message available');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before trying again
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testConsumer();
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
 Connected to WebSocket server
-Subscription response: { status: 'ok', message: 'Subscribed successfully' }
+Subscription response: { status: 'error', message: 'Failed to subscribe' }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 5'
+}
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:producer.stdout.txt">
@@ -551,68 +653,10 @@ Published message 2
 Published message 3
 Published message 4
 Published message 5
-Queue length: 5
+Queue length: 15
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:consumer.stdout.txt">
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
 No message available
 No message available
 No message available
@@ -639,51 +683,23 @@ Received message: Test message 5
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/start:dev.stdout.txt">
-c[[90m2:41:14 PM[0m] Starting compilation in watch mode...
+c[[90m2:46:42 PM[0m] Starting compilation in watch mode...
 
-[[90m2:41:15 PM[0m] Found 0 errors. Watching for file changes.
+[[90m2:46:43 PM[0m] Found 0 errors. Watching for file changes.
 
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +6ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMessageBrokerModule dependencies initialized[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mMessageBrokerGateway subscribed to the "subscribe" message[39m[38;5;3m +7ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +1ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMessageBrokerController {/message-broker}:[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/exchange, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/bind, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/publish, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/consume/:exchange/:queue, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/queue-length/:exchange/:queue, GET} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 769454  - [39m09/05/2024, 2:41:16 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +2ms[39m
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
-import { Module } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-import { MessageBrokerController } from './message-broker.controller';
-import { MessageBrokerGateway } from './message-broker.gateway';
-import { MessageStorageService } from './message-storage.service';
-
-@Module({
-  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
-  controllers: [MessageBrokerController],
-})
-export class MessageBrokerModule {}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MessageBrokerModule } from './message-broker/message-broker.module';
-
-@Module({
-  imports: [MessageBrokerModule],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +7ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMessageBrokerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mMessageBrokerGateway subscribed to the "subscribe" message[39m[38;5;3m +7ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMessageBrokerController {/message-broker}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/exchange, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/bind, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/publish, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/consume/:exchange/:queue, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/queue-length/:exchange/:queue, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +2ms[39m
 
 </FILE>
 <FILE path="test/test-websocket-client.ts" TARGET>
@@ -711,8 +727,7 @@ socket.on('disconnect', () => {
 
 // Keep the script running
 setInterval(() => {}, 1000);
-
 </FILE>
 <REQUEST>
-messages are being produced but log logged by the websocket in stdout
+write another test to make sure the messages only get routed to the right queues
 </REQUEST>

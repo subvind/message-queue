@@ -1,0 +1,18 @@
+Exchange 'exchange1' created
+Exchange 'exchange2' created
+Queue 'queue1' bound to exchange 'exchange1'
+Queue 'queue2' bound to exchange 'exchange1'
+Queue 'queue3' bound to exchange 'exchange2'
+Queue 'queue4' bound to exchange 'exchange2'
+Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
+Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
+
+Consuming messages from exchange1/queue1:
+Received: Message 1 for Queue 1
+Received: Message 2 for Queue 1
