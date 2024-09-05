@@ -6,7 +6,7 @@ socket.on('connect', () => {
   console.log('Connected to WebSocket server');
 
   // Subscribe to a queue
-  socket.emit('subscribe', { exchange: 'test-exchange1', queue: 'test-queue' }, (response) => {
+  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
     console.log('Subscription response:', response);
   });
 

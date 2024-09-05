@@ -288,14 +288,20 @@ export class MessageBrokerGateway {
   @WebSocketServer()
   server: Server;
 
+  private subscriptions: Map<Socket, Set<string>> = new Map();
+
   constructor(private readonly messageBrokerService: MessageBrokerService) {
-    // Subscribe to all exchanges and queues
     this.subscribeToAllExchanges();
   }
 
   private subscribeToAllExchanges() {
     this.messageBrokerService.onMessage((exchange, queue, message) => {
-      this.server.emit('message', { exchange, queue, message });
+      this.server.sockets.sockets.forEach((socket: Socket) => {
+        const subscriptionKey = `${exchange}:${queue}`;
+        if (this.subscriptions.get(socket)?.has(subscriptionKey)) {
+          socket.emit('message', { exchange, queue, message });
+        }
+      });
     });
   }
 
@@ -305,15 +311,22 @@ export class MessageBrokerGateway {
     @ConnectedSocket() client: Socket,
   ) {
     const { exchange, queue } = data;
-    const callback = (message: any) => {
-      client.emit('message', { exchange, queue, message });
-    };
+    const subscriptionKey = `${exchange}:${queue}`;
 
-    const success = this.messageBrokerService.subscribe(exchange, queue, callback);
+    if (!this.subscriptions.has(client)) {
+      this.subscriptions.set(client, new Set());
+    }
+
+    this.subscriptions.get(client).add(subscriptionKey);
+
+    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
+      client.emit('message', { exchange, queue, message });
+    });
 
     if (success) {
       client.on('disconnect', () => {
-        this.messageBrokerService.unsubscribe(exchange, queue, callback);
+        this.subscriptions.delete(client);
+        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
       });
       return { status: 'ok', message: 'Subscribed successfully' };
     } else {
@@ -324,8 +337,8 @@ export class MessageBrokerGateway {
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
 import { Injectable } from '@nestjs/common';
-import { MessageStorageService } from './message-storage.service';
-import { Exchange } from './exchange';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+import { Exchange } from '../exchange/exchange';
 import { EventEmitter } from 'events';
 
 @Injectable()
@@ -399,7 +412,211 @@ export class MessageBrokerService {
   }
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-storage.service.ts">
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.controller.ts">
+
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { MessageBrokerService } from './message-broker.service';
+
+@Controller('message-broker')
+export class MessageBrokerController {
+  constructor(private readonly messageBrokerService: MessageBrokerService) {}
+
+  @Post('exchange')
+  createExchange(@Body('name') name: string) {
+    this.messageBrokerService.createExchange(name);
+    return { status: 'ok', message: `Exchange ${name} created` };
+  }
+
+  @Post('bind')
+  bind(
+    @Body('exchange') exchange: string,
+    @Body('queue') queue: string,
+    @Body('routingKey') routingKey: string,
+  ) {
+    const result = this.messageBrokerService.bind(exchange, queue, routingKey);
+    return result
+      ? { status: 'ok', message: 'Binding created' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Post('publish')
+  publish(
+    @Body('exchange') exchange: string,
+    @Body('routingKey') routingKey: string,
+    @Body('message') message: any,
+  ) {
+    const result = this.messageBrokerService.publish(exchange, routingKey, message);
+    return result
+      ? { status: 'ok', message: 'Message published' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Get('consume/:exchange/:queue')
+  async consume(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const message = await this.messageBrokerService.consume(exchange, queue);
+    return message
+      ? { status: 'ok', message }
+      : { status: 'error', message: 'No message available or exchange/queue not found' };
+  }
+
+  @Get('queue-length/:exchange/:queue')
+  async getQueueLength(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const length = await this.messageBrokerService.getQueueLength(exchange, queue);
+    return { status: 'ok', length };
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-websocket-client.ts">
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3030');
+
+socket.on('connect', () => {
+  console.log('Connected to WebSocket server');
+
+  // Subscribe to a queue
+  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
+    console.log('Subscription response:', response);
+  });
+
+  // Listen for messages
+  socket.on('message', (data) => {
+    console.log('Received message via WebSocket:', data);
+  });
+});
+
+socket.on('disconnect', () => {
+  console.log('Disconnected from WebSocket server');
+});
+
+// Keep the script running
+setInterval(() => {}, 1000);
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/main.ts">
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3030);
+}
+bootstrap();
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MessageBrokerModule } from './message-broker/message-broker.module';
+
+@Module({
+  imports: [MessageBrokerModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/exchange/exchange.ts">
+
+import { MessageStorageService } from '../message-storage/message-storage.service';
+
+import { Queue } from 'src/queue/queue';
+
+export class Exchange {
+  private queues: Map<string, Queue> = new Map();
+
+  constructor(
+    private name: string,
+    private messageStorage: MessageStorageService
+  ) {}
+
+  bind(queueName: string, routingKey: string) {
+    if (!this.queues.has(queueName)) {
+      this.queues.set(queueName, new Queue(this.name, queueName, this.messageStorage));
+    }
+  }
+
+  async publish(routingKey: string, message: any) {
+    this.queues.forEach((queue, queueName) => {
+      if (queueName === routingKey) {
+        queue.enqueue(message);
+      }
+    });
+  }
+
+  async consume(queueName: string): Promise<any> {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      return await queue.dequeue();
+    }
+    return null;
+  }
+
+  subscribe(queueName: string, callback: (message: any) => void) {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      queue.subscribe(callback);
+    }
+  }
+
+  unsubscribe(queueName: string, callback: (message: any) => void) {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      queue.unsubscribe(callback);
+    }
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/queue/queue.ts">
+import { EventEmitter } from 'events';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+
+export class Queue {
+  private eventEmitter = new EventEmitter();
+
+  constructor(
+    private exchangeName: string,
+    private queueName: string,
+    private messageStorage: MessageStorageService
+  ) {}
+
+  async enqueue(message: any) {
+    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
+    this.eventEmitter.emit('message', message);
+  }
+
+  async dequeue(): Promise<any> {
+    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+    if (message) {
+      return message.content;
+    }
+    
+    return new Promise((resolve) => {
+      this.eventEmitter.once('message', async (newMessage) => {
+        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+        resolve(newMessage);
+      });
+    });
+  }
+
+  subscribe(callback: (message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+
+  unsubscribe(callback: (message: any) => void) {
+    this.eventEmitter.off('message', callback);
+  }
+}
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts">
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 
@@ -448,100 +665,58 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
 }
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/exchange.ts">
-
-import { MessageStorageService } from './message-storage.service';
-
-import { Queue } from './queue';
-
-export class Exchange {
-  private queues: Map<string, Queue> = new Map();
-
-  constructor(
-    private name: string,
-    private messageStorage: MessageStorageService
-  ) {}
-
-  bind(queueName: string, routingKey: string) {
-    if (!this.queues.has(queueName)) {
-      this.queues.set(queueName, new Queue(this.name, queueName, this.messageStorage));
-    }
-  }
-
-  async publish(routingKey: string, message: any) {
-    this.queues.forEach((queue, queueName) => {
-      if (queueName === routingKey) {
-        queue.enqueue(message);
-      }
-    });
-  }
-
-  async consume(queueName: string): Promise<any> {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      return await queue.dequeue();
-    }
-    return null;
-  }
-
-  subscribe(queueName: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      queue.subscribe(callback);
-    }
-  }
-
-  unsubscribe(queueName: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      queue.unsubscribe(callback);
-    }
-  }
+<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
+Connected to WebSocket server
+Subscription response: { status: 'ok', message: 'Subscribed successfully' }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
 }
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/queue.ts">
-import { EventEmitter } from 'events';
-import { MessageStorageService } from './message-storage.service';
-
-export class Queue {
-  private eventEmitter = new EventEmitter();
-
-  constructor(
-    private exchangeName: string,
-    private queueName: string,
-    private messageStorage: MessageStorageService
-  ) {}
-
-  async enqueue(message: any) {
-    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
-    this.eventEmitter.emit('message', message);
-  }
-
-  async dequeue(): Promise<any> {
-    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-    if (message) {
-      return message.content;
-    }
-    
-    return new Promise((resolve) => {
-      this.eventEmitter.once('message', async (newMessage) => {
-        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-        resolve(newMessage);
-      });
-    });
-  }
-
-  subscribe(callback: (message: any) => void) {
-    this.eventEmitter.on('message', callback);
-  }
-
-  unsubscribe(callback: (message: any) => void) {
-    this.eventEmitter.off('message', callback);
-  }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 5'
 }
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-message-routing.ts">
+<FILE path="/home/travis/Projects/message-queue/test:message-routing.stdout.txt">
+Exchange 'exchange1' created
+Exchange 'exchange2' created
+Queue 'queue1' bound to exchange 'exchange1'
+Queue 'queue2' bound to exchange 'exchange1'
+Queue 'queue3' bound to exchange 'exchange2'
+Queue 'queue4' bound to exchange 'exchange2'
+Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
+Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
+
+Attempting to consume messages from exchange1/queue1:
+Received: Message 1 for Queue 1
+Received: Message 2 for Queue 1
+
+</FILE>
+<FILE path="test/test-message-routing.ts" TARGET>
 import axios from 'axios';
 
 const baseUrl = 'http://localhost:3030/message-broker';
@@ -615,12 +790,18 @@ async function testMessageRouting() {
     ];
 
     for (const { exchange, queue } of queues) {
-      console.log(`\nConsuming messages from ${exchange}/${queue}:`);
+      console.log(`\nAttempting to consume messages from ${exchange}/${queue}:`);
       let message;
+      let messageCount = 0;
       while ((message = await consumeMessage(exchange, queue)) !== null) {
         console.log(`Received: ${message}`);
+        messageCount++;
       }
-      console.log(`No more messages in ${exchange}/${queue}`);
+      if (messageCount === 0) {
+        console.log(`No messages found in ${exchange}/${queue}`);
+      } else {
+        console.log(`Consumed ${messageCount} message(s) from ${exchange}/${queue}`);
+      }
     }
 
     console.log('\nMessage routing test completed.');
@@ -631,287 +812,6 @@ async function testMessageRouting() {
 
 testMessageRouting();
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-producer.ts">
-import axios from 'axios';
-
-async function testProducer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
-
-  try {
-    // Create an exchange
-    await axios.post(`${baseUrl}/exchange`, { name: 'test-exchange' });
-    console.log('Exchange created');
-
-    // Bind a queue to the exchange
-    await axios.post(`${baseUrl}/bind`, {
-      exchange: 'test-exchange',
-      queue: 'test-queue',
-      routingKey: 'test-queue'
-    });
-    console.log('Queue bound to exchange');
-
-    // Publish messages
-    for (let i = 0; i < 5; i++) {
-      await axios.post(`${baseUrl}/publish`, {
-        exchange: 'test-exchange',
-        routingKey: 'test-queue',
-        message: `Test message ${i + 1}`
-      });
-      console.log(`Published message ${i + 1}`);
-    }
-
-    // Get queue length
-    const response = await axios.get(`${baseUrl}/queue-length/test-exchange/test-queue`);
-    console.log(`Queue length: ${response.data.length}`);
-
-  } catch (error) {
-    console.error('Error:', error.response ? error.response.data : error.message);
-  }
-}
-
-testProducer();
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-consumer.ts">
-import axios from 'axios';
-
-async function testConsumer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
-
-  try {
-    while (true) {
-      const response = await axios.get(`${baseUrl}/consume/test-exchange/test-queue`);
-      if (response.data.status === 'ok') {
-        console.log('Received message:', response.data.message);
-      } else {
-        console.log('No message available');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before trying again
-      }
-    }
-  } catch (error) {
-    console.error('Error:', error.response ? error.response.data : error.message);
-  }
-}
-
-testConsumer();
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:message-routing.stdout.txt">
-Exchange 'exchange1' created
-Exchange 'exchange2' created
-Queue 'queue1' bound to exchange 'exchange1'
-Queue 'queue2' bound to exchange 'exchange1'
-Queue 'queue3' bound to exchange 'exchange2'
-Queue 'queue4' bound to exchange 'exchange2'
-Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
-Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
-Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
-Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
-Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
-Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
-Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
-Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
-
-Consuming messages from exchange1/queue1:
-Received: Message 1 for Queue 1
-Received: Message 2 for Queue 1
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:producer.stdout.txt">
-Exchange created
-Queue bound to exchange
-Published message 1
-Published message 2
-Published message 3
-Published message 4
-Published message 5
-Queue length: 15
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:consumer.stdout.txt">
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-No message available
-Received message: Test message 1
-Received message: Test message 2
-Received message: Test message 3
-Received message: Test message 4
-Received message: Test message 5
-Received message: Test message 1
-Received message: Test message 2
-Received message: Test message 3
-Received message: Test message 4
-Received message: Test message 5
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
-Connected to WebSocket server
-Subscription response: { status: 'error', message: 'Failed to subscribe' }
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 1'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 2'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 3'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 4'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 5'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 1 for Queue 1'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue2',
-  message: 'Message 1 for Queue 2'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue3',
-  message: 'Message 1 for Queue 3'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue4',
-  message: 'Message 1 for Queue 4'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 2 for Queue 1'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 1 for Queue 1'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue2',
-  message: 'Message 1 for Queue 2'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue3',
-  message: 'Message 1 for Queue 3'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue4',
-  message: 'Message 1 for Queue 4'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue1',
-  message: 'Message 2 for Queue 1'
-}
-Received message via WebSocket: {
-  exchange: 'exchange1',
-  queue: 'queue2',
-  message: 'Message 2 for Queue 2'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue3',
-  message: 'Message 2 for Queue 3'
-}
-Received message via WebSocket: {
-  exchange: 'exchange2',
-  queue: 'queue4',
-  message: 'Message 2 for Queue 4'
-}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/main.ts">
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3030);
-}
-bootstrap();
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MessageBrokerModule } from './message-broker/message-broker.module';
-
-@Module({
-  imports: [MessageBrokerModule],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
-import { Module } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-import { MessageBrokerController } from './message-broker.controller';
-import { MessageBrokerGateway } from './message-broker.gateway';
-import { MessageStorageService } from './message-storage.service';
-
-@Module({
-  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
-  controllers: [MessageBrokerController],
-})
-export class MessageBrokerModule {}
-
-</FILE>
-<FILE path="test/test-websocket-client.ts" TARGET>
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3030');
-
-socket.on('connect', () => {
-  console.log('Connected to WebSocket server');
-
-  // Subscribe to a queue
-  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
-    console.log('Subscription response:', response);
-  });
-
-  // Listen for messages
-  socket.on('message', (data) => {
-    console.log('Received message via WebSocket:', data);
-  });
-});
-
-socket.on('disconnect', () => {
-  console.log('Disconnected from WebSocket server');
-});
-
-// Keep the script running
-setInterval(() => {}, 1000);
-</FILE>
 <REQUEST>
-when i run test-message-routing messages are showing up in stdout that souldn't be because i am only subscribed to test-exchange/test-queue
+instead of using http it should use websockets to test consumption
 </REQUEST>
