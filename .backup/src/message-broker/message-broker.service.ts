@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { MessageStorageService } from './message-storage.service';
 import { Exchange } from './exchange';
-import { EventEmitter } from 'events';
 
 @Injectable()
 export class MessageBrokerService {
   private exchanges: Map<string, Exchange> = new Map();
-  private eventEmitter: EventEmitter = new EventEmitter();
 
   constructor(private messageStorage: MessageStorageService) {}
 
@@ -24,7 +22,6 @@ export class MessageBrokerService {
     const exchange = this.getExchange(exchangeName);
     if (exchange) {
       await exchange.publish(routingKey, message);
-      this.eventEmitter.emit('message', exchangeName, routingKey, message);
       return true;
     }
     return false;
@@ -67,9 +64,5 @@ export class MessageBrokerService {
 
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
     return await this.messageStorage.getQueueLength(exchangeName, queueName);
-  }
-
-  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
-    this.eventEmitter.on('message', callback);
   }
 }

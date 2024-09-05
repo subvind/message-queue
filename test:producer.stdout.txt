@@ -5,4 +5,4 @@ Published message 2
 Published message 3
 Published message 4
 Published message 5
-Queue length: 5
+Queue length: 15
