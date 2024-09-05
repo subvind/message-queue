@@ -13,7 +13,16 @@ export class MessageBrokerGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly messageBrokerService: MessageBrokerService) {}
+  constructor(private readonly messageBrokerService: MessageBrokerService) {
+    // Subscribe to all exchanges and queues
+    this.subscribeToAllExchanges();
+  }
+
+  private subscribeToAllExchanges() {
+    this.messageBrokerService.onMessage((exchange, queue, message) => {
+      this.server.emit('message', { exchange, queue, message });
+    });
+  }
 
   @SubscribeMessage('subscribe')
   handleSubscribe(

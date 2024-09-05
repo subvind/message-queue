@@ -272,17 +272,6 @@ export function dot(a: V3, b: V3): number {
 
 You will now be given the actual INPUT you must work with.
 
-<FILE path="/home/travis/Projects/message-queue/src/main.ts">
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3030);
-}
-bootstrap();
-
-</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
 import {
   WebSocketGateway,
@@ -552,6 +541,96 @@ export class Queue {
 }
 
 </FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-message-routing.ts">
+import axios from 'axios';
+
+const baseUrl = 'http://localhost:3030/message-broker';
+
+async function createExchange(name: string) {
+  await axios.post(`${baseUrl}/exchange`, { name });
+  console.log(`Exchange '${name}' created`);
+}
+
+async function bindQueue(exchange: string, queue: string) {
+  await axios.post(`${baseUrl}/bind`, {
+    exchange,
+    queue,
+    routingKey: queue
+  });
+  console.log(`Queue '${queue}' bound to exchange '${exchange}'`);
+}
+
+async function publishMessage(exchange: string, queue: string, message: string) {
+  await axios.post(`${baseUrl}/publish`, {
+    exchange,
+    routingKey: queue,
+    message
+  });
+  console.log(`Published message to exchange '${exchange}', queue '${queue}': ${message}`);
+}
+
+async function consumeMessage(exchange: string, queue: string): Promise<string | null> {
+  try {
+    const response = await axios.get(`${baseUrl}/consume/${exchange}/${queue}`);
+    if (response.data.status === 'ok') {
+      return response.data.message;
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+  return null;
+}
+
+async function testMessageRouting() {
+  try {
+    // Create exchanges
+    await createExchange('exchange1');
+    await createExchange('exchange2');
+
+    // Bind queues
+    await bindQueue('exchange1', 'queue1');
+    await bindQueue('exchange1', 'queue2');
+    await bindQueue('exchange2', 'queue3');
+    await bindQueue('exchange2', 'queue4');
+
+    // Publish messages
+    await publishMessage('exchange1', 'queue1', 'Message 1 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 1 for Queue 2');
+    await publishMessage('exchange2', 'queue3', 'Message 1 for Queue 3');
+    await publishMessage('exchange2', 'queue4', 'Message 1 for Queue 4');
+    await publishMessage('exchange1', 'queue1', 'Message 2 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 2 for Queue 2');
+    await publishMessage('exchange2', 'queue3', 'Message 2 for Queue 3');
+    await publishMessage('exchange2', 'queue4', 'Message 2 for Queue 4');
+
+    // Consume and verify messages
+    const queues = [
+      { exchange: 'exchange1', queue: 'queue1' },
+      { exchange: 'exchange1', queue: 'queue2' },
+      { exchange: 'exchange2', queue: 'queue3' },
+      { exchange: 'exchange2', queue: 'queue4' },
+    ];
+
+    for (const { exchange, queue } of queues) {
+      console.log(`\nConsuming messages from ${exchange}/${queue}:`);
+      let message;
+      while ((message = await consumeMessage(exchange, queue)) !== null) {
+        console.log(`Received: ${message}`);
+      }
+      console.log(`No more messages in ${exchange}/${queue}`);
+    }
+
+    console.log('\nMessage routing test completed.');
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testMessageRouting();
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/test/test-producer.ts">
 import axios from 'axios';
 
@@ -615,34 +694,25 @@ async function testConsumer() {
 
 testConsumer();
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
-Connected to WebSocket server
-Subscription response: { status: 'error', message: 'Failed to subscribe' }
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 1'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 2'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 3'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 4'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 5'
-}
+<FILE path="/home/travis/Projects/message-queue/test:message-routing.stdout.txt">
+Exchange 'exchange1' created
+Exchange 'exchange2' created
+Queue 'queue1' bound to exchange 'exchange1'
+Queue 'queue2' bound to exchange 'exchange1'
+Queue 'queue3' bound to exchange 'exchange2'
+Queue 'queue4' bound to exchange 'exchange2'
+Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
+Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
+Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
+
+Consuming messages from exchange1/queue1:
+Received: Message 1 for Queue 1
+Received: Message 2 for Queue 1
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:producer.stdout.txt">
@@ -682,24 +752,138 @@ Received message: Test message 4
 Received message: Test message 5
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/start:dev.stdout.txt">
-c[[90m2:46:42 PM[0m] Starting compilation in watch mode...
+<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
+Connected to WebSocket server
+Subscription response: { status: 'error', message: 'Failed to subscribe' }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 5'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue1',
+  message: 'Message 1 for Queue 1'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue2',
+  message: 'Message 1 for Queue 2'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue3',
+  message: 'Message 1 for Queue 3'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue4',
+  message: 'Message 1 for Queue 4'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue1',
+  message: 'Message 2 for Queue 1'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue1',
+  message: 'Message 1 for Queue 1'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue2',
+  message: 'Message 1 for Queue 2'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue3',
+  message: 'Message 1 for Queue 3'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue4',
+  message: 'Message 1 for Queue 4'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue1',
+  message: 'Message 2 for Queue 1'
+}
+Received message via WebSocket: {
+  exchange: 'exchange1',
+  queue: 'queue2',
+  message: 'Message 2 for Queue 2'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue3',
+  message: 'Message 2 for Queue 3'
+}
+Received message via WebSocket: {
+  exchange: 'exchange2',
+  queue: 'queue4',
+  message: 'Message 2 for Queue 4'
+}
 
-[[90m2:46:43 PM[0m] Found 0 errors. Watching for file changes.
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/main.ts">
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +7ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMessageBrokerModule dependencies initialized[39m[38;5;3m +0ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mMessageBrokerGateway subscribed to the "subscribe" message[39m[38;5;3m +7ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +1ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMessageBrokerController {/message-broker}:[39m[38;5;3m +0ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/exchange, POST} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/bind, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/publish, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/consume/:exchange/:queue, GET} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/queue-length/:exchange/:queue, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 773322  - [39m09/05/2024, 2:46:44 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +2ms[39m
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3030);
+}
+bootstrap();
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MessageBrokerModule } from './message-broker/message-broker.module';
+
+@Module({
+  imports: [MessageBrokerModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
+import { Module } from '@nestjs/common';
+import { MessageBrokerService } from './message-broker.service';
+import { MessageBrokerController } from './message-broker.controller';
+import { MessageBrokerGateway } from './message-broker.gateway';
+import { MessageStorageService } from './message-storage.service';
+
+@Module({
+  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
+  controllers: [MessageBrokerController],
+})
+export class MessageBrokerModule {}
 
 </FILE>
 <FILE path="test/test-websocket-client.ts" TARGET>
@@ -729,5 +913,5 @@ socket.on('disconnect', () => {
 setInterval(() => {}, 1000);
 </FILE>
 <REQUEST>
-write another test to make sure the messages only get routed to the right queues
+when i run test-message-routing messages are showing up in stdout that souldn't be because i am only subscribed to test-exchange/test-queue
 </REQUEST>

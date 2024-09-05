@@ -13,14 +13,20 @@ export class MessageBrokerGateway {
   @WebSocketServer()
   server: Server;
 
+  private subscriptions: Map<Socket, Set<string>> = new Map();
+
   constructor(private readonly messageBrokerService: MessageBrokerService) {
-    // Subscribe to all exchanges and queues
     this.subscribeToAllExchanges();
   }
 
   private subscribeToAllExchanges() {
     this.messageBrokerService.onMessage((exchange, queue, message) => {
-      this.server.emit('message', { exchange, queue, message });
+      this.server.sockets.sockets.forEach((socket: Socket) => {
+        const subscriptionKey = `${exchange}:${queue}`;
+        if (this.subscriptions.get(socket)?.has(subscriptionKey)) {
+          socket.emit('message', { exchange, queue, message });
+        }
+      });
     });
   }
 
@@ -30,15 +36,22 @@ export class MessageBrokerGateway {
     @ConnectedSocket() client: Socket,
   ) {
     const { exchange, queue } = data;
-    const callback = (message: any) => {
-      client.emit('message', { exchange, queue, message });
-    };
+    const subscriptionKey = `${exchange}:${queue}`;
 
-    const success = this.messageBrokerService.subscribe(exchange, queue, callback);
+    if (!this.subscriptions.has(client)) {
+      this.subscriptions.set(client, new Set());
+    }
+
+    this.subscriptions.get(client).add(subscriptionKey);
+
+    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
+      client.emit('message', { exchange, queue, message });
+    });
 
     if (success) {
       client.on('disconnect', () => {
-        this.messageBrokerService.unsubscribe(exchange, queue, callback);
+        this.subscriptions.delete(client);
+        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
       });
       return { status: 'ok', message: 'Subscribed successfully' };
     } else {
