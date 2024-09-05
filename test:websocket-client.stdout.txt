@@ -1,5 +1,5 @@
 Connected to WebSocket server
-Subscription response: { status: 'error', message: 'Failed to subscribe' }
+Subscription response: { status: 'ok', message: 'Subscribed successfully' }
 Received message via WebSocket: {
   exchange: 'test-exchange',
   queue: 'test-queue',
@@ -19,9 +19,4 @@ Received message via WebSocket: {
   exchange: 'test-exchange',
   queue: 'test-queue',
   message: 'Test message 4'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 5'
 }

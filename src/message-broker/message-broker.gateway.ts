@@ -24,9 +24,9 @@ export class MessageBrokerGateway {
       const subscriptionKey = `${exchange}:${queue}`;
       const subscribers = this.subscriptions.get(subscriptionKey);
       if (subscribers) {
-        subscribers.forEach((socket) => {
-          socket.emit('message', { exchange, queue, message });
-        });
+        // Select a random subscriber to consume the message
+        const randomSubscriber = Array.from(subscribers)[Math.floor(Math.random() * subscribers.size)];
+        randomSubscriber.emit('message', { exchange, queue, message });
       }
     });
   }
@@ -46,7 +46,7 @@ export class MessageBrokerGateway {
     this.subscriptions.get(subscriptionKey).add(client);
 
     const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
-      client.emit('message', { exchange, queue, message });
+      // This callback is not needed anymore as we're handling message distribution in onMessage
     });
 
     if (success) {
