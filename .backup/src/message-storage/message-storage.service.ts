@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
-import { DatabaseClient } from 'database-client';
+import { DatabaseClient } from 'database/client';
 
 type StorageType = 'isdb' | 'redis';
 
@@ -27,7 +27,6 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
       this.isdbClient = new DatabaseClient('http://localhost:6969');
       await this.isdbClient.createUser(this.isdbUsername, this.isdbPassword);
       await this.isdbClient.login(this.isdbUsername, this.isdbPassword);
-      await this.isdbClient.assignUserToDatabase(1)
 
     } else {
       this.redisClient = new Redis({
@@ -82,12 +81,9 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
       message = await this.isdbClient.lpop(this.isdbDatabase, queueKey);
     } else {
       message = await this.redisClient.lpop(queueKey);
-      if (message) {
-        message = JSON.parse(message);
-      }
     }
 
-    return message;
+    return message ? JSON.parse(message) : null;
   }
 
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {

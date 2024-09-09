@@ -10,32 +10,32 @@ Subscription response for exchange1/queue2: { status: 'ok', message: 'Subscribed
 Subscription response for exchange2/queue3: { status: 'ok', message: 'Subscribed successfully' }
 Subscription response for exchange2/queue4: { status: 'ok', message: 'Subscribed successfully' }
 Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
-Received message via WebSocket from exchange1/queue1: Message 1 for Queue 1
 Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
-Received message via WebSocket from exchange1/queue2: Message 1 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 1 for Queue 1
 Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
-Received message via WebSocket from exchange2/queue3: Message 1 for Queue 3
 Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
-Received message via WebSocket from exchange2/queue4: Message 1 for Queue 4
+Received message via WebSocket from exchange2/queue3: Message 1 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 1 for Queue 2
 Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
-Received message via WebSocket from exchange1/queue1: Message 2 for Queue 1
+Received message via WebSocket from exchange2/queue4: Message 1 for Queue 4
 Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
-Received message via WebSocket from exchange1/queue2: Message 2 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 2 for Queue 1
 Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
-Received message via WebSocket from exchange2/queue3: Message 2 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 2 for Queue 2
 Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
-Received message via WebSocket from exchange2/queue4: Message 2 for Queue 4
+Received message via WebSocket from exchange2/queue3: Message 2 for Queue 3
 Published message to exchange 'exchange1', queue 'queue1': Message 3 for Queue 1
-Received message via WebSocket from exchange1/queue1: Message 3 for Queue 1
+Received message via WebSocket from exchange2/queue4: Message 2 for Queue 4
 Published message to exchange 'exchange1', queue 'queue2': Message 3 for Queue 2
-Received message via WebSocket from exchange1/queue2: Message 3 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 3 for Queue 1
 Published message to exchange 'exchange2', queue 'queue3': Message 3 for Queue 3
-Received message via WebSocket from exchange2/queue3: Message 3 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 3 for Queue 2
 Published message to exchange 'exchange1', queue 'queue1': Message 4 for Queue 1
-Received message via WebSocket from exchange1/queue1: Message 4 for Queue 1
+Received message via WebSocket from exchange2/queue3: Message 3 for Queue 3
 Published message to exchange 'exchange1', queue 'queue2': Message 4 for Queue 2
-Received message via WebSocket from exchange1/queue2: Message 4 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 4 for Queue 1
 Published message to exchange 'exchange1', queue 'queue1': Message 5 for Queue 1
+Received message via WebSocket from exchange1/queue2: Message 4 for Queue 2
 Received message via WebSocket from exchange1/queue1: Message 5 for Queue 1
 
 Summary of received messages:
@@ -45,15 +45,15 @@ exchange1/queue1: 5 message(s)
   3. Message 3 for Queue 1
   4. Message 4 for Queue 1
   5. Message 5 for Queue 1
+exchange2/queue3: 3 message(s)
+  1. Message 1 for Queue 3
+  2. Message 2 for Queue 3
+  3. Message 3 for Queue 3
 exchange1/queue2: 4 message(s)
   1. Message 1 for Queue 2
   2. Message 2 for Queue 2
   3. Message 3 for Queue 2
   4. Message 4 for Queue 2
-exchange2/queue3: 3 message(s)
-  1. Message 1 for Queue 3
-  2. Message 2 for Queue 3
-  3. Message 3 for Queue 3
 exchange2/queue4: 2 message(s)
   1. Message 1 for Queue 4
   2. Message 2 for Queue 4
