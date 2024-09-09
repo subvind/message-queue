@@ -1,6 +1,13 @@
 message-queue
 ========
 
+requirements:
+- https://github.com/subvind/database
+
+implementations:
+- https://github.com/subvind/flow-based-programming
+
+
 ## Project setup
 
 ```bash
