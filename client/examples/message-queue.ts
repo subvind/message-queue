@@ -1,6 +1,8 @@
 import { MessageQueueClient } from "../src/index";
 
-const client = new MessageQueueClient('http://localhost:3030');
+const client = new MessageQueueClient('http://localhost:3030', {
+  verbose: true
+});
 
 async function main() {
   console.log('Creating exchange...');

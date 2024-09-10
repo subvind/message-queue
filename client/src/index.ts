@@ -2,10 +2,14 @@ import axios, { AxiosInstance } from 'axios';
 import { io, Socket } from 'socket.io-client';
 
 export class MessageQueueClient {
+  private verbose: boolean = false;
   private axiosInstance: AxiosInstance;
   private socket: Socket | null = null;
 
-  constructor(baseURL: string) {
+  constructor(baseURL: string, config?: any) {
+    if (config) {
+      this.verbose = config.verbose;
+    }
     this.axiosInstance = axios.create({
       baseURL,
       headers: {
@@ -43,7 +47,9 @@ export class MessageQueueClient {
     return new Promise((resolve) => {
       this.socket = io(this.axiosInstance.defaults.baseURL);
       this.socket.on('connect', () => {
-        console.log('Connected to WebSocket server');
+        if (this.verbose) {
+          console.log('Connected to WebSocket server');
+        }
         resolve();
       });
     });
@@ -54,10 +60,16 @@ export class MessageQueueClient {
       if (!this.socket) {
         throw new Error('WebSocket is not connected. Call connectWebSocket() first.');
       }
+      if (this.verbose) {
+        console.log(`subscribeToQueue: ${exchange} ${queue}`);
+      }
       this.socket.emit('subscribe', { exchange, queue }, (response: any) => {
         console.log(`Subscription response for ${exchange}/${queue}:`, response);
         this.socket!.on('message', (data) => {
           if (data.exchange === exchange && data.queue === queue) {
+            if (this.verbose) {
+              console.log(`subscribeToQueue.callback: ${data.exchange} === ${exchange} && ${data.queue} === ${queue}`, data.message);
+            }
             callback(data.message);
           }
         });
