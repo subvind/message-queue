@@ -1,17 +1,338 @@
-c[[90m3:16:21 PM[0m] Starting compilation in watch mode...
+c[[90m3:17:10 PM[0m] Starting compilation in watch mode...
 
-[[90m3:16:23 PM[0m] Found 0 errors. Watching for file changes.
+[[90m3:17:11 PM[0m] Found 0 errors. Watching for file changes.
 
-[2024-09-10T20:16:23.610Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
-[2024-09-10T20:16:23.619Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
-[2024-09-10T20:16:23.619Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
-[2024-09-10T20:16:23.625Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
-[2024-09-10T20:16:23.626Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
-[2024-09-10T20:16:23.627Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
-[2024-09-10T20:16:23.627Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
-[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
-[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
-[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
-[2024-09-10T20:16:23.629Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
-[2024-09-10T20:16:23.629Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
-[2024-09-10T20:16:23.699Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+[2024-09-10T20:17:11.707Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:17:11.714Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:17:11.714Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:17:11.719Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:17:11.720Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:17:11.720Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:17:11.720Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:17:11.721Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:17:11.721Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:17:11.721Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:17:11.721Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:17:11.721Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:17:11.799Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+test subscribe
+test subscribe
+c[[90m3:23:30 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:23:30 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:23:31.069Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:23:31.077Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:23:31.077Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:23:31.084Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:23:31.085Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:23:31.086Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:23:31.086Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:23:31.087Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:23:31.087Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:23:31.087Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:23:31.087Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:23:31.088Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:23:31.172Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:25:06 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:25:06 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:25:06.917Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:25:06.925Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:25:06.925Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:25:06.932Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:25:06.933Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:25:06.934Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:25:06.934Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:25:06.934Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:25:06.934Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:25:06.935Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:25:06.935Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:25:06.935Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:25:07.019Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:25:13 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:25:13 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:25:13.588Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:25:13.595Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:25:13.596Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:25:13.602Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:25:13.603Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:25:13.604Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:25:13.604Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:25:13.604Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:25:13.605Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:25:13.605Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:25:13.605Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:25:13.605Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:25:13.688Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:25:40 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:25:40 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:25:40.543Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:25:40.551Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:25:40.551Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:25:40.559Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:25:40.560Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:25:40.561Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:25:40.561Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:25:40.561Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:25:40.561Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:25:40.562Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:25:40.562Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:25:40.562Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:25:40.632Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+test subscribe
+test subscribe
+test subscribe
+c[[90m3:30:25 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:30:25 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:30:26.270Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:30:26.277Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:30:26.277Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:30:26.284Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:30:26.285Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:30:26.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:30:26.286Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:30:26.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:30:26.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:30:26.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:30:26.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:30:26.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:30:26.371Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+Subscribing to multi-sub-exchange/queue1
+Subscribing to multi-sub-exchange/queue2
+Received message for multi-sub-exchange/routing-key1: Message for queue1
+Published message to multi-sub-exchange/routing-key1: Message for queue1
+Received message for multi-sub-exchange/routing-key1: Another message for queue1
+Published message to multi-sub-exchange/routing-key1: Another message for queue1
+Received message for multi-sub-exchange/routing-key2: Message for queue2
+Published message to multi-sub-exchange/routing-key2: Message for queue2
+Received message for multi-sub-exchange/routing-key2: Another message for queue2
+Published message to multi-sub-exchange/routing-key2: Another message for queue2
+c[[90m3:33:46 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:33:46 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:33:46.826Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:33:46.831Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:33:46.831Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:33:46.836Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:33:46.837Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:33:46.838Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:33:46.838Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:33:46.838Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:33:46.838Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:33:46.838Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:33:46.839Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:33:46.839Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:33:46.915Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+Subscribing to multi-sub-exchange/queue1
+Subscribing to multi-sub-exchange/queue2
+Received message for multi-sub-exchange/routing-key1: Message for queue1
+Published message to multi-sub-exchange/routing-key1: Message for queue1
+Received message for multi-sub-exchange/routing-key2: Message for queue2
+Published message to multi-sub-exchange/routing-key2: Message for queue2
+Received message for multi-sub-exchange/routing-key1: Another message for queue1
+Published message to multi-sub-exchange/routing-key1: Another message for queue1
+Received message for multi-sub-exchange/routing-key2: Another message for queue2
+Published message to multi-sub-exchange/routing-key2: Another message for queue2
+Received message for test-exchange/custom-routing-key: Test message 1
+Published message to test-exchange/custom-routing-key: Test message 1
+Received message for test-exchange/custom-routing-key: Test message 2
+Published message to test-exchange/custom-routing-key: Test message 2
+Received message for test-exchange/custom-routing-key: Test message 3
+Published message to test-exchange/custom-routing-key: Test message 3
+Subscribing to test-exchange/test-queue
+Received message for test-exchange/test-queue: Test message 4
+Published message to test-exchange/test-queue: Test message 4
+Received message for test-exchange/test-queue: Test message 5
+Published message to test-exchange/test-queue: Test message 5
+Subscribing to multi-sub-exchange/queue1
+Subscribing to multi-sub-exchange/queue2
+Received message for multi-sub-exchange/routing-key1: Message for queue1
+Published message to multi-sub-exchange/routing-key1: Message for queue1
+Received message for multi-sub-exchange/routing-key2: Message for queue2
+Published message to multi-sub-exchange/routing-key2: Message for queue2
+Received message for multi-sub-exchange/routing-key1: Another message for queue1
+Published message to multi-sub-exchange/routing-key1: Another message for queue1
+Received message for multi-sub-exchange/routing-key2: Another message for queue2
+Published message to multi-sub-exchange/routing-key2: Another message for queue2
+c[[90m3:37:27 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:37:27 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:37:27.627Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:37:27.634Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:37:27.635Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:37:27.642Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:37:27.643Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:37:27.644Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:37:27.644Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:37:27.645Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:37:27.645Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:37:27.645Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:37:27.646Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:37:27.646Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:37:27.731Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+Subscribing to multi-sub-exchange/queue1
+Subscribing to multi-sub-exchange/queue2
+Received message for multi-sub-exchange/queue1: Message for queue1
+Published message to multi-sub-exchange/routing-key1: Message for queue1
+Received message for multi-sub-exchange/queue2: Message for queue2
+Published message to multi-sub-exchange/routing-key2: Message for queue2
+Received message for multi-sub-exchange/queue1: Another message for queue1
+Published message to multi-sub-exchange/routing-key1: Another message for queue1
+Received message for multi-sub-exchange/queue2: Another message for queue2
+Published message to multi-sub-exchange/routing-key2: Another message for queue2
+c[[90m3:39:01 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:39:01 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:39:01.423Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:39:01.430Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:39:01.430Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:39:01.437Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:39:01.438Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:39:01.439Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:39:01.440Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:39:01.440Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:39:01.441Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:39:01.441Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:39:01.442Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:39:01.443Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:39:01.513Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+Subscribing to multi-sub-exchange/queue1
+Subscribing to multi-sub-exchange/queue2
+Received message for multi-sub-exchange/queue1: Message for queue1
+Published message to multi-sub-exchange/routing-key1: Message for queue1
+Received message for multi-sub-exchange/queue2: Message for queue2
+Published message to multi-sub-exchange/routing-key2: Message for queue2
+Received message for multi-sub-exchange/queue1: Another message for queue1
+Published message to multi-sub-exchange/routing-key1: Another message for queue1
+Received message for multi-sub-exchange/queue2: Another message for queue2
+Published message to multi-sub-exchange/routing-key2: Another message for queue2
+c[[90m3:40:31 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:40:31 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:40:31.872Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:40:31.880Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:40:31.880Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:40:31.887Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:40:31.888Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:40:31.889Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:40:31.889Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:40:31.890Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:40:31.890Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:40:31.890Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:40:31.891Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:40:31.891Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:40:31.961Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:40:44 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:40:44 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:40:44.795Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:40:44.802Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:40:44.802Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:40:44.809Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:40:44.810Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:40:44.811Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:40:44.811Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:40:44.812Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:40:44.812Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:40:44.812Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:40:44.813Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:40:44.813Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:40:44.878Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:40:56 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:40:56 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:40:57.098Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:40:57.106Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:40:57.106Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:40:57.113Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:40:57.114Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:40:57.115Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:40:57.115Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:40:57.116Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:40:57.116Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:40:57.116Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:40:57.116Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:40:57.117Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:40:57.201Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:41:00 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:41:00 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:41:00.976Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:41:00.981Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:41:00.981Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:41:00.986Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:41:00.987Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:41:00.987Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:41:00.987Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:41:00.988Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:41:00.988Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:41:00.988Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:41:00.988Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:41:00.988Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:41:01.051Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:44:10 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:44:10 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:44:11.269Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:44:11.276Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:44:11.276Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:44:11.284Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:44:11.285Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:44:11.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:44:11.286Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:44:11.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:44:11.286Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:44:11.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:44:11.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:44:11.287Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:44:11.357Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:44:39 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:44:40 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:44:40.283Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:44:40.290Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:44:40.290Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:44:40.298Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:44:40.299Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:44:40.300Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:44:40.300Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:44:40.300Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:44:40.301Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:44:40.301Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:44:40.301Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:44:40.301Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:44:40.370Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+c[[90m3:45:52 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:45:52 PM[0m] Found 0 errors. Watching for file changes.
+
+[2024-09-10T20:45:52.483Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:45:52.491Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:45:52.491Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:45:52.497Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:45:52.498Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:45:52.499Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:45:52.499Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:45:52.500Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:45:52.500Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:45:52.500Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:45:52.500Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:45:52.501Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:45:52.568Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started

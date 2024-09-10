@@ -63,4 +63,8 @@ export class Exchange {
   async getQueueLength(queueName: string): Promise<number> {
     return await this.messageStorage.getQueueLength(this.name, queueName);
   }
+
+  getBoundQueues(routingKey: string): string[] {
+    return Array.from(this.bindings.get(routingKey) || []);
+  }
 }

@@ -27,7 +27,12 @@ export class MessageBrokerService {
     const exchange = this.getExchange(exchangeName);
     if (exchange) {
       await exchange.publish(routingKey, message);
-      this.eventEmitter.emit('message', exchangeName, routingKey, message);
+      // Emit the message to all bound queues
+      const boundQueues = exchange.getBoundQueues(routingKey);
+      for (const queue of boundQueues) {
+        this.eventEmitter.emit('message', exchangeName, queue, message);
+      }
+      // console.log(`Published message to ${exchangeName}/${routingKey}:`, message);
       return true;
     }
     return false;
@@ -50,23 +55,19 @@ export class MessageBrokerService {
     return false;
   }
 
-  subscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
-    console.log('test subscribe')
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.subscribe(routingKey, callback);
-      return true;
-    }
-    return false;
+  subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+    // console.log(`Subscribing to ${exchangeName}/${queueName}`);
+    this.eventEmitter.on('message', (exchange, queue, message) => {
+      if (exchange === exchangeName && queue === queueName) {
+        callback(message);
+      }
+    });
+    return true;
   }
 
-  unsubscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.unsubscribe(routingKey, callback);
-      return true;
-    }
-    return false;
+  unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+    this.eventEmitter.removeListener('message', callback);
+    return true;
   }
 
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {

@@ -21,11 +21,12 @@ export class MessageBrokerGateway {
 
   private subscribeToAllExchanges() {
     this.messageBrokerService.onMessage((exchange, queue, message) => {
+      console.log(`Received message for ${exchange}/${queue}:`, message); // Add this line for debugging
       const subscriptionKey = `${exchange}:${queue}`;
       const subscribers = this.subscriptions.get(subscriptionKey);
       if (subscribers) {
-        subscribers.forEach((socket) => {
-          socket.emit('message', { exchange, queue, message });
+        subscribers.forEach(subscriber => {
+          subscriber.emit('message', { exchange, queue, message });
         });
       }
     });
@@ -46,7 +47,7 @@ export class MessageBrokerGateway {
     this.subscriptions.get(subscriptionKey).add(client);
 
     const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
-      client.emit('message', { exchange, queue, message });
+      // This callback is not needed anymore as we're handling message distribution in onMessage
     });
 
     if (success) {

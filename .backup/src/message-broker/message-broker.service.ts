@@ -11,9 +11,12 @@ export class MessageBrokerService {
   constructor(private messageStorage: MessageStorageService) {}
 
   createExchange(name: string): Exchange {
-    const exchange = new Exchange(name, this.messageStorage);
-    this.exchanges.set(name, exchange);
-    return exchange;
+    if (!this.exchanges.has(name)) {
+      const exchange = new Exchange(name, this.messageStorage);
+      this.exchanges.set(name, exchange);
+      return exchange;
+    }
+    return this.exchanges.get(name);
   }
 
   getExchange(name: string): Exchange | undefined {
@@ -25,6 +28,7 @@ export class MessageBrokerService {
     if (exchange) {
       await exchange.publish(routingKey, message);
       this.eventEmitter.emit('message', exchangeName, routingKey, message);
+      console.log(`Published message to ${exchangeName}/${routingKey}:`, message);
       return true;
     }
     return false;
@@ -47,26 +51,31 @@ export class MessageBrokerService {
     return false;
   }
 
-  subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+  subscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
+    console.log(`Subscribing to ${exchangeName}/${routingKey}`);
     const exchange = this.getExchange(exchangeName);
     if (exchange) {
-      exchange.subscribe(queueName, callback);
+      exchange.subscribe(routingKey, callback);
       return true;
     }
     return false;
   }
 
-  unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+  unsubscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
     const exchange = this.getExchange(exchangeName);
     if (exchange) {
-      exchange.unsubscribe(queueName, callback);
+      exchange.unsubscribe(routingKey, callback);
       return true;
     }
     return false;
   }
 
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
-    return await this.messageStorage.getQueueLength(exchangeName, queueName);
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      return await exchange.getQueueLength(queueName);
+    }
+    return 0;
   }
 
   onMessage(callback: (exchange: string, queue: string, message: any) => void) {

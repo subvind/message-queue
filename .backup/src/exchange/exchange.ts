@@ -4,6 +4,7 @@ import { Queue } from '../queue/queue';
 export class Exchange {
   private queues: Map<string, Queue> = new Map();
   private bindings: Map<string, Set<string>> = new Map();
+  private subscriptions: Map<string, Set<(message: any) => void>> = new Map();
 
   constructor(
     private name: string,
@@ -28,6 +29,10 @@ export class Exchange {
         await queue.enqueue(message);
       }
     }
+    
+    // Notify subscribers
+    const subscribers = this.subscriptions.get(routingKey) || new Set();
+    subscribers.forEach(callback => callback(message));
   }
 
   async consume(queueName: string): Promise<any> {
@@ -39,17 +44,19 @@ export class Exchange {
   }
 
   subscribe(routingKey: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      this.bind(queueName, routingKey);
-      queue.subscribe(callback);
+    if (!this.subscriptions.has(routingKey)) {
+      this.subscriptions.set(routingKey, new Set());
     }
+    this.subscriptions.get(routingKey).add(callback);
   }
 
   unsubscribe(routingKey: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      queue.unsubscribe(callback);
+    const subscribers = this.subscriptions.get(routingKey);
+    if (subscribers) {
+      subscribers.delete(callback);
+      if (subscribers.size === 0) {
+        this.subscriptions.delete(routingKey);
+      }
     }
   }
 

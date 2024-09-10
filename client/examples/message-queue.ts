@@ -35,8 +35,8 @@ async function main() {
   });
 
   console.log('Publishing more messages...');
-  await client.publish('test-exchange', 'test-queue', 'Test message 4');
-  await client.publish('test-exchange', 'test-queue', 'Test message 5');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 4');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 5');
 
   // Wait for WebSocket messages
   console.log('Waiting for WebSocket messages...');

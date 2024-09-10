@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Example for using the database client",
   "scripts": {
-    "example:message-queue": "ts-node message-queue.ts 2>&1 | tee example:message-queue.stdout.txt"
+    "example:message-queue": "ts-node message-queue.ts 2>&1 | tee example:message-queue.stdout.txt",
+    "example:multi-subscriptions": "ts-node multi-subscriptions.ts 2>&1 | tee example:multi-subscriptions.stdout.txt"
   },
   "dependencies": {
     "typescript": "^4.5.4",
