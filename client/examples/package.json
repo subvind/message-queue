@@ -1,0 +1,17 @@
+{
+  "name": "database-example",
+  "version": "1.0.0",
+  "description": "Example for using the database client",
+  "scripts": {
+    "example:message-queue": "ts-node message-queue.ts 2>&1 | tee example:message-queue.stdout.txt",
+    "example:session-cache": "ts-node session-cache.ts 2>&1 | tee example:session-cache.stdout.txt",
+    "example:set-and-get-value": "ts-node set-and-get-value.ts 2>&1 | tee example:set-and-get-value.stdout.txt"
+  },
+  "dependencies": {
+    "typescript": "^4.5.4",
+    "ts-node": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.12"
+  }
+}
