@@ -272,399 +272,6 @@ export function dot(a: V3, b: V3): number {
 
 You will now be given the actual INPUT you must work with.
 
-<FILE path="/home/travis/Projects/message-queue/client/src/index.ts">
-import axios, { AxiosInstance } from 'axios';
-import { io, Socket } from 'socket.io-client';
-
-export class MessageQueueClient {
-  private axiosInstance: AxiosInstance;
-  private socket: Socket | null = null;
-
-  constructor(baseURL: string) {
-    this.axiosInstance = axios.create({
-      baseURL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  async createExchange(name: string): Promise<any> {
-    const response = await this.axiosInstance.post('/message-broker/exchange', { name });
-    return response.data;
-  }
-
-  async bind(exchange: string, queue: string, routingKey: string): Promise<any> {
-    const response = await this.axiosInstance.post('/message-broker/bind', { exchange, queue, routingKey });
-    return response.data;
-  }
-
-  async publish(exchange: string, routingKey: string, message: any): Promise<any> {
-    const response = await this.axiosInstance.post('/message-broker/publish', { exchange, routingKey, message });
-    return response.data;
-  }
-
-  async consume(exchange: string, queue: string): Promise<any> {
-    const response = await this.axiosInstance.get(`/message-broker/consume/${exchange}/${queue}`);
-    return response.data;
-  }
-
-  async getQueueLength(exchange: string, queue: string): Promise<any> {
-    const response = await this.axiosInstance.get(`/message-broker/queue-length/${exchange}/${queue}`);
-    return response.data;
-  }
-
-  connectWebSocket(): Promise<void> {
-    return new Promise((resolve) => {
-      this.socket = io(this.axiosInstance.defaults.baseURL);
-      this.socket.on('connect', () => {
-        console.log('Connected to WebSocket server');
-        resolve();
-      });
-    });
-  }
-
-  subscribeToQueue(exchange: string, queue: string, callback: (message: any) => void): Promise<void> {
-    return new Promise((resolve) => {
-      if (!this.socket) {
-        throw new Error('WebSocket is not connected. Call connectWebSocket() first.');
-      }
-      this.socket.emit('subscribe', { exchange, queue }, (response: any) => {
-        console.log(`Subscription response for ${exchange}/${queue}:`, response);
-        this.socket!.on('message', (data) => {
-          if (data.exchange === exchange && data.queue === queue) {
-            callback(data.message);
-          }
-        });
-        resolve();
-      });
-    });
-  }
-
-  disconnectWebSocket(): void {
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
-    }
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
-import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  WebSocketServer,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { MessageBrokerService } from './message-broker.service';
-
-@WebSocketGateway()
-export class MessageBrokerGateway {
-  @WebSocketServer()
-  server: Server;
-
-  private subscriptions: Map<string, Set<Socket>> = new Map();
-
-  constructor(private readonly messageBrokerService: MessageBrokerService) {
-    this.subscribeToAllExchanges();
-  }
-
-  private subscribeToAllExchanges() {
-    this.messageBrokerService.onMessage((exchange, queue, message) => {
-      const subscriptionKey = `${exchange}:${queue}`;
-      const subscribers = this.subscriptions.get(subscriptionKey);
-      if (subscribers) {
-        // Select a random subscriber to consume the message
-        const randomSubscriber = Array.from(subscribers)[Math.floor(Math.random() * subscribers.size)];
-        randomSubscriber.emit('message', { exchange, queue, message });
-      }
-    });
-  }
-
-  @SubscribeMessage('subscribe')
-  handleSubscribe(
-    @MessageBody() data: { exchange: string; queue: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const { exchange, queue } = data;
-    const subscriptionKey = `${exchange}:${queue}`;
-
-    if (!this.subscriptions.has(subscriptionKey)) {
-      this.subscriptions.set(subscriptionKey, new Set());
-    }
-
-    this.subscriptions.get(subscriptionKey).add(client);
-
-    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
-      // This callback is not needed anymore as we're handling message distribution in onMessage
-    });
-
-    if (success) {
-      client.on('disconnect', () => {
-        const subscribers = this.subscriptions.get(subscriptionKey);
-        if (subscribers) {
-          subscribers.delete(client);
-          if (subscribers.size === 0) {
-            this.subscriptions.delete(subscriptionKey);
-          }
-        }
-        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
-      });
-      return { status: 'ok', message: 'Subscribed successfully' };
-    } else {
-      return { status: 'error', message: 'Failed to subscribe' };
-    }
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
-import { Injectable } from '@nestjs/common';
-import { MessageStorageService } from '../message-storage/message-storage.service';
-import { Exchange } from '../exchange/exchange';
-import { EventEmitter } from 'events';
-
-@Injectable()
-export class MessageBrokerService {
-  private exchanges: Map<string, Exchange> = new Map();
-  private eventEmitter: EventEmitter = new EventEmitter();
-
-  constructor(private messageStorage: MessageStorageService) {}
-
-  createExchange(name: string): Exchange {
-    const exchange = new Exchange(name, this.messageStorage);
-    this.exchanges.set(name, exchange);
-    return exchange;
-  }
-
-  getExchange(name: string): Exchange | undefined {
-    return this.exchanges.get(name);
-  }
-
-  async publish(exchangeName: string, routingKey: string, message: any): Promise<boolean> {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      await exchange.publish(routingKey, message);
-      this.eventEmitter.emit('message', exchangeName, routingKey, message);
-      return true;
-    }
-    return false;
-  }
-
-  async consume(exchangeName: string, queueName: string): Promise<any> {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      return await exchange.consume(queueName);
-    }
-    return null;
-  }
-
-  bind(exchangeName: string, queueName: string, routingKey: string): boolean {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.bind(queueName, routingKey);
-      return true;
-    }
-    return false;
-  }
-
-  subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.subscribe(queueName, callback);
-      return true;
-    }
-    return false;
-  }
-
-  unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.unsubscribe(queueName, callback);
-      return true;
-    }
-    return false;
-  }
-
-  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
-    return await this.messageStorage.getQueueLength(exchangeName, queueName);
-  }
-
-  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
-    this.eventEmitter.on('message', callback);
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.controller.ts">
-
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-
-@Controller('message-broker')
-export class MessageBrokerController {
-  constructor(private readonly messageBrokerService: MessageBrokerService) {}
-
-  @Post('exchange')
-  createExchange(@Body('name') name: string) {
-    this.messageBrokerService.createExchange(name);
-    return { status: 'ok', message: `Exchange ${name} created` };
-  }
-
-  @Post('bind')
-  bind(
-    @Body('exchange') exchange: string,
-    @Body('queue') queue: string,
-    @Body('routingKey') routingKey: string,
-  ) {
-    const result = this.messageBrokerService.bind(exchange, queue, routingKey);
-    return result
-      ? { status: 'ok', message: 'Binding created' }
-      : { status: 'error', message: 'Exchange not found' };
-  }
-
-  @Post('publish')
-  publish(
-    @Body('exchange') exchange: string,
-    @Body('routingKey') routingKey: string,
-    @Body('message') message: any,
-  ) {
-    const result = this.messageBrokerService.publish(exchange, routingKey, message);
-    return result
-      ? { status: 'ok', message: 'Message published' }
-      : { status: 'error', message: 'Exchange not found' };
-  }
-
-  @Get('consume/:exchange/:queue')
-  async consume(
-    @Param('exchange') exchange: string,
-    @Param('queue') queue: string,
-  ) {
-    const message = await this.messageBrokerService.consume(exchange, queue);
-    return message
-      ? { status: 'ok', message }
-      : { status: 'error', message: 'No message available or exchange/queue not found' };
-  }
-
-  @Get('queue-length/:exchange/:queue')
-  async getQueueLength(
-    @Param('exchange') exchange: string,
-    @Param('queue') queue: string,
-  ) {
-    const length = await this.messageBrokerService.getQueueLength(exchange, queue);
-    return { status: 'ok', length };
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
-import { Module } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-import { MessageBrokerController } from './message-broker.controller';
-import { MessageBrokerGateway } from './message-broker.gateway';
-import { MessageStorageService } from '../message-storage/message-storage.service';
-
-@Module({
-  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
-  controllers: [MessageBrokerController],
-})
-export class MessageBrokerModule {}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MessageBrokerModule } from './message-broker/message-broker.module';
-
-@Module({
-  imports: [MessageBrokerModule],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/main.ts">
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3030);
-}
-bootstrap();
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-websocket-client.ts">
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3030');
-
-socket.on('connect', () => {
-  console.log('Connected to WebSocket server');
-
-  // Subscribe to a queue
-  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
-    console.log('Subscription response:', response);
-  });
-
-  // Listen for messages
-  socket.on('message', (data) => {
-    console.log('Received message via WebSocket:', data);
-  });
-});
-
-socket.on('disconnect', () => {
-  console.log('Disconnected from WebSocket server');
-});
-
-// Keep the script running
-setInterval(() => {}, 1000);
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/client/examples/example:message-queue.stdout.txt">
-Creating exchange...
-Binding queue to exchange...
-Publishing messages...
-Checking queue length...
-Queue length: { status: 'ok', length: 5 }
-Consuming messages...
-Consumed message: { status: 'ok', message: 'Test message 1' }
-Consumed message: { status: 'ok', message: 'Test message 2' }
-Consumed message: { status: 'ok', message: 'Test message 3' }
-Connecting WebSocket...
-Connected to WebSocket server
-Subscribing to queue...
-Subscription response for test-exchange/test-queue: { status: 'ok', message: 'Subscribed successfully' }
-Publishing more messages...
-Disconnecting WebSocket...
-All operations completed successfully.
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
-Connected to WebSocket server
-Subscription response: { status: 'ok', message: 'Subscribed successfully' }
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 1'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 2'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 3'
-}
-Received message via WebSocket: {
-  exchange: 'test-exchange',
-  queue: 'test-queue',
-  message: 'Test message 4'
-}
-
-</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/queue/queue.ts">
 import { EventEmitter } from 'events';
 import { MessageStorageService } from '../message-storage/message-storage.service';
@@ -706,54 +313,6 @@ export class Queue {
   }
 }
 
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/exchange/exchange.ts">
-import { MessageStorageService } from '../message-storage/message-storage.service';
-import { Queue } from 'src/queue/queue';
-
-export class Exchange {
-  private queues: Map<string, Queue> = new Map();
-
-  constructor(
-    private name: string,
-    private messageStorage: MessageStorageService
-  ) {}
-
-  bind(queueName: string, routingKey: string) {
-    if (!this.queues.has(queueName)) {
-      this.queues.set(queueName, new Queue(this.name, queueName, this.messageStorage));
-    }
-  }
-
-  async publish(routingKey: string, message: any) {
-    const targetQueue = this.queues.get(routingKey);
-    if (targetQueue) {
-      await targetQueue.enqueue(message);
-    }
-  }
-
-  async consume(queueName: string): Promise<any> {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      return await queue.dequeue();
-    }
-    return null;
-  }
-
-  subscribe(queueName: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      queue.subscribe(callback);
-    }
-  }
-
-  unsubscribe(queueName: string, callback: (message: any) => void) {
-    const queue = this.queues.get(queueName);
-    if (queue) {
-      queue.unsubscribe(callback);
-    }
-  }
-}
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts">
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
@@ -859,7 +418,370 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   }
 }
 </FILE>
-<FILE path="client/examples/message-queue.ts" TARGET>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
+import { Injectable } from '@nestjs/common';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+import { Exchange } from '../exchange/exchange';
+import { EventEmitter } from 'events';
+
+@Injectable()
+export class MessageBrokerService {
+  private exchanges: Map<string, Exchange> = new Map();
+  private eventEmitter: EventEmitter = new EventEmitter();
+
+  constructor(private messageStorage: MessageStorageService) {}
+
+  createExchange(name: string): Exchange {
+    if (!this.exchanges.has(name)) {
+      const exchange = new Exchange(name, this.messageStorage);
+      this.exchanges.set(name, exchange);
+      return exchange;
+    }
+    return this.exchanges.get(name);
+  }
+
+  getExchange(name: string): Exchange | undefined {
+    return this.exchanges.get(name);
+  }
+
+  async publish(exchangeName: string, routingKey: string, message: any): Promise<boolean> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      await exchange.publish(routingKey, message);
+      this.eventEmitter.emit('message', exchangeName, routingKey, message);
+      return true;
+    }
+    return false;
+  }
+
+  async consume(exchangeName: string, queueName: string): Promise<any> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      return await exchange.consume(queueName);
+    }
+    return null;
+  }
+
+  bind(exchangeName: string, queueName: string, routingKey: string): boolean {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      exchange.bind(queueName, routingKey);
+      return true;
+    }
+    return false;
+  }
+
+  subscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
+    console.log('test subscribe')
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      exchange.subscribe(routingKey, callback);
+      return true;
+    }
+    return false;
+  }
+
+  unsubscribe(exchangeName: string, routingKey: string, callback: (message: any) => void): boolean {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      exchange.unsubscribe(routingKey, callback);
+      return true;
+    }
+    return false;
+  }
+
+  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      return await exchange.getQueueLength(queueName);
+    }
+    return 0;
+  }
+
+  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { MessageBrokerService } from './message-broker.service';
+
+@WebSocketGateway()
+export class MessageBrokerGateway {
+  @WebSocketServer()
+  server: Server;
+
+  private subscriptions: Map<string, Set<Socket>> = new Map();
+
+  constructor(private readonly messageBrokerService: MessageBrokerService) {
+    this.subscribeToAllExchanges();
+  }
+
+  private subscribeToAllExchanges() {
+    this.messageBrokerService.onMessage((exchange, queue, message) => {
+      const subscriptionKey = `${exchange}:${queue}`;
+      const subscribers = this.subscriptions.get(subscriptionKey);
+      if (subscribers) {
+        // Select a random subscriber to consume the message
+        const randomSubscriber = Array.from(subscribers)[Math.floor(Math.random() * subscribers.size)];
+        randomSubscriber.emit('message', { exchange, queue, message });
+      }
+    });
+  }
+
+  @SubscribeMessage('subscribe')
+  handleSubscribe(
+    @MessageBody() data: { exchange: string; queue: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { exchange, queue } = data;
+    const subscriptionKey = `${exchange}:${queue}`;
+
+    if (!this.subscriptions.has(subscriptionKey)) {
+      this.subscriptions.set(subscriptionKey, new Set());
+    }
+
+    this.subscriptions.get(subscriptionKey).add(client);
+
+    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
+      // This callback is not needed anymore as we're handling message distribution in onMessage
+    });
+
+    if (success) {
+      client.on('disconnect', () => {
+        const subscribers = this.subscriptions.get(subscriptionKey);
+        if (subscribers) {
+          subscribers.delete(client);
+          if (subscribers.size === 0) {
+            this.subscriptions.delete(subscriptionKey);
+          }
+        }
+        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
+      });
+      return { status: 'ok', message: 'Subscribed successfully' };
+    } else {
+      return { status: 'error', message: 'Failed to subscribe' };
+    }
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-websocket-client.ts">
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3030');
+
+socket.on('connect', () => {
+  console.log('Connected to WebSocket server');
+
+  // Subscribe to a queue
+  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
+    console.log('Subscription response:', response);
+  });
+
+  // Listen for messages
+  socket.on('message', (data) => {
+    console.log('Received message via WebSocket:', data);
+  });
+});
+
+socket.on('disconnect', () => {
+  console.log('Disconnected from WebSocket server');
+});
+
+// Keep the script running
+setInterval(() => {}, 1000);
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-consumer.ts">
+import axios from 'axios';
+
+async function testConsumer() {
+  const baseUrl = 'http://localhost:3030/message-broker';
+
+  try {
+    while (true) {
+      const response = await axios.get(`${baseUrl}/consume/test-exchange/test-queue`);
+      if (response.data.status === 'ok') {
+        console.log('Received message:', response.data.message);
+      } else {
+        console.log('No message available');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before trying again
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testConsumer();
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-producer.ts">
+import axios from 'axios';
+
+async function testProducer() {
+  const baseUrl = 'http://localhost:3030/message-broker';
+
+  try {
+    // Create an exchange
+    await axios.post(`${baseUrl}/exchange`, { name: 'test-exchange' });
+    console.log('Exchange created');
+
+    // Bind a queue to the exchange
+    await axios.post(`${baseUrl}/bind`, {
+      exchange: 'test-exchange',
+      queue: 'test-queue',
+      routingKey: 'test-queue'
+    });
+    console.log('Queue bound to exchange');
+
+    // Publish messages
+    for (let i = 0; i < 5; i++) {
+      await axios.post(`${baseUrl}/publish`, {
+        exchange: 'test-exchange',
+        routingKey: 'test-queue',
+        message: `Test message ${i + 1}`
+      });
+      console.log(`Published message ${i + 1}`);
+    }
+
+    // Get queue length
+    const response = await axios.get(`${baseUrl}/queue-length/test-exchange/test-queue`);
+    console.log(`Queue length: ${response.data.length}`);
+
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testProducer();
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test/test-message-routing.ts">
+import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
+
+const baseUrl = 'http://localhost:3030/message-broker';
+const wsUrl = 'http://localhost:3030';
+
+async function createExchange(name: string) {
+  await axios.post(`${baseUrl}/exchange`, { name });
+  console.log(`Exchange '${name}' created`);
+}
+
+async function bindQueue(exchange: string, queue: string) {
+  await axios.post(`${baseUrl}/bind`, {
+    exchange,
+    queue,
+    routingKey: queue
+  });
+  console.log(`Queue '${queue}' bound to exchange '${exchange}'`);
+}
+
+async function publishMessage(exchange: string, queue: string, message: string) {
+  await axios.post(`${baseUrl}/publish`, {
+    exchange,
+    routingKey: queue,
+    message
+  });
+  console.log(`Published message to exchange '${exchange}', queue '${queue}': ${message}`);
+}
+
+function createWebSocketClient(): Promise<Socket> {
+  return new Promise((resolve) => {
+    const socket = io(wsUrl);
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+      resolve(socket);
+    });
+  });
+}
+
+function subscribeToQueue(socket: Socket, exchange: string, queue: string): Promise<void> {
+  return new Promise((resolve) => {
+    socket.emit('subscribe', { exchange, queue }, (response) => {
+      console.log(`Subscription response for ${exchange}/${queue}:`, response);
+      resolve();
+    });
+  });
+}
+
+async function testMessageRouting() {
+  try {
+    // Create exchanges
+    await createExchange('exchange1');
+    await createExchange('exchange2');
+
+    // Bind queues
+    await bindQueue('exchange1', 'queue1');
+    await bindQueue('exchange1', 'queue2');
+    await bindQueue('exchange2', 'queue3');
+    await bindQueue('exchange2', 'queue4');
+
+    // Create WebSocket client
+    const socket = await createWebSocketClient();
+
+    // Subscribe to all queues
+    await subscribeToQueue(socket, 'exchange1', 'queue1');
+    await subscribeToQueue(socket, 'exchange1', 'queue2');
+    await subscribeToQueue(socket, 'exchange2', 'queue3');
+    await subscribeToQueue(socket, 'exchange2', 'queue4');
+
+    // Set up message listener
+    const receivedMessages: { [key: string]: string[] } = {};
+    socket.on('message', (data) => {
+      const key = `${data.exchange}/${data.queue}`;
+      if (!receivedMessages[key]) {
+        receivedMessages[key] = [];
+      }
+      receivedMessages[key].push(data.message);
+      console.log(`Received message via WebSocket from ${key}:`, data.message);
+    });
+
+    // Publish messages
+    await publishMessage('exchange1', 'queue1', 'Message 1 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 1 for Queue 2');
+    await publishMessage('exchange2', 'queue3', 'Message 1 for Queue 3');
+    await publishMessage('exchange2', 'queue4', 'Message 1 for Queue 4');
+    await publishMessage('exchange1', 'queue1', 'Message 2 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 2 for Queue 2');
+    await publishMessage('exchange2', 'queue3', 'Message 2 for Queue 3');
+    await publishMessage('exchange2', 'queue4', 'Message 2 for Queue 4');
+    await publishMessage('exchange1', 'queue1', 'Message 3 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 3 for Queue 2');
+    await publishMessage('exchange2', 'queue3', 'Message 3 for Queue 3');
+    await publishMessage('exchange1', 'queue1', 'Message 4 for Queue 1');
+    await publishMessage('exchange1', 'queue2', 'Message 4 for Queue 2');
+    await publishMessage('exchange1', 'queue1', 'Message 5 for Queue 1');
+
+    // Wait for messages to be received
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Print summary of received messages
+    console.log('\nSummary of received messages:');
+    for (const [key, messages] of Object.entries(receivedMessages)) {
+      console.log(`${key}: ${messages.length} message(s)`);
+      messages.forEach((msg, index) => {
+        console.log(`  ${index + 1}. ${msg}`);
+      });
+    }
+
+    // Close WebSocket connection
+    socket.close();
+    console.log('\nMessage routing test completed.');
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
+
+testMessageRouting();
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/client/examples/message-queue.ts">
 import { MessageQueueClient } from "../src/index";
 
 const client = new MessageQueueClient('http://localhost:3030');
@@ -868,13 +790,13 @@ async function main() {
   console.log('Creating exchange...');
   await client.createExchange('test-exchange');
 
-  console.log('Binding queue to exchange...');
-  await client.bind('test-exchange', 'test-queue', 'test-route');
+  console.log('Binding queue to exchange with different routing key...');
+  await client.bind('test-exchange', 'test-queue', 'custom-routing-key');
 
   console.log('Publishing messages...');
-  await client.publish('test-exchange', 'test-route', 'message1');
-  await client.publish('test-exchange', 'test-route', 'message2');
-  await client.publish('test-exchange', 'test-route', 'message3');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 1');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 2');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 3');
 
   console.log('Checking queue length...');
   const queueLength = await client.getQueueLength('test-exchange', 'test-queue');
@@ -895,10 +817,11 @@ async function main() {
   });
 
   console.log('Publishing more messages...');
-  await client.publish('test-exchange', 'test-route', 'websocket message 1');
-  await client.publish('test-exchange', 'test-route', 'websocket message 2');
+  await client.publish('test-exchange', 'test-queue', 'Test message 4');
+  await client.publish('test-exchange', 'test-queue', 'Test message 5');
 
-  // Wait for a few seconds to receive WebSocket messages
+  // Wait for WebSocket messages
+  console.log('Waiting for WebSocket messages...');
   await new Promise(resolve => setTimeout(resolve, 5000));
 
   console.log('Disconnecting WebSocket...');
@@ -909,6 +832,67 @@ async function main() {
 
 main().catch(error => console.error('Error:', error));
 </FILE>
+<FILE path="src/exchange/exchange.ts" TARGET>
+import { MessageStorageService } from '../message-storage/message-storage.service';
+import { Queue } from '../queue/queue';
+
+export class Exchange {
+  private queues: Map<string, Queue> = new Map();
+  private bindings: Map<string, Set<string>> = new Map();
+
+  constructor(
+    private name: string,
+    private messageStorage: MessageStorageService
+  ) {}
+
+  bind(queueName: string, routingKey: string) {
+    if (!this.queues.has(queueName)) {
+      this.queues.set(queueName, new Queue(this.name, queueName, this.messageStorage));
+    }
+    if (!this.bindings.has(routingKey)) {
+      this.bindings.set(routingKey, new Set());
+    }
+    this.bindings.get(routingKey).add(queueName);
+  }
+
+  async publish(routingKey: string, message: any) {
+    const boundQueues = this.bindings.get(routingKey) || new Set();
+    for (const queueName of boundQueues) {
+      const queue = this.queues.get(queueName);
+      if (queue) {
+        await queue.enqueue(message);
+      }
+    }
+  }
+
+  async consume(queueName: string): Promise<any> {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      return await queue.dequeue();
+    }
+    return null;
+  }
+
+  subscribe(routingKey: string, callback: (message: any) => void) {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      this.bind(queueName, routingKey);
+      queue.subscribe(callback);
+    }
+  }
+
+  unsubscribe(routingKey: string, callback: (message: any) => void) {
+    const queue = this.queues.get(queueName);
+    if (queue) {
+      queue.unsubscribe(callback);
+    }
+  }
+
+  async getQueueLength(queueName: string): Promise<number> {
+    return await this.messageStorage.getQueueLength(this.name, queueName);
+  }
+}
+</FILE>
 <REQUEST>
-never Received message via WebSocket via stdout in example message queue
+subscribe and unsubscribe methods need to work with routingKey and just work
 </REQUEST>

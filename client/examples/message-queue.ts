@@ -6,13 +6,13 @@ async function main() {
   console.log('Creating exchange...');
   await client.createExchange('test-exchange');
 
-  console.log('Binding queue to exchange...');
-  await client.bind('test-exchange', 'test-queue', 'test-queue');
+  console.log('Binding queue to exchange with different routing key...');
+  await client.bind('test-exchange', 'test-queue', 'custom-routing-key');
 
   console.log('Publishing messages...');
-  await client.publish('test-exchange', 'test-queue', 'Test message 1');
-  await client.publish('test-exchange', 'test-queue', 'Test message 2');
-  await client.publish('test-exchange', 'test-queue', 'Test message 3');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 1');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 2');
+  await client.publish('test-exchange', 'custom-routing-key', 'Test message 3');
 
   console.log('Checking queue length...');
   const queueLength = await client.getQueueLength('test-exchange', 'test-queue');
@@ -36,9 +36,9 @@ async function main() {
   await client.publish('test-exchange', 'test-queue', 'Test message 4');
   await client.publish('test-exchange', 'test-queue', 'Test message 5');
 
-  // Wait for a longer time to receive WebSocket messages
+  // Wait for WebSocket messages
   console.log('Waiting for WebSocket messages...');
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 5000));
 
   console.log('Disconnecting WebSocket...');
   client.disconnectWebSocket();
