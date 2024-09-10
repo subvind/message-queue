@@ -272,102 +272,149 @@ export function dot(a: V3, b: V3): number {
 
 You will now be given the actual INPUT you must work with.
 
-<FILE path="/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts">
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import Redis from 'ioredis';
-import { DatabaseClient } from 'database/client';
+<FILE path="/home/travis/Projects/message-queue/client/src/index.ts">
+import axios, { AxiosInstance } from 'axios';
+import { io, Socket } from 'socket.io-client';
 
-type StorageType = 'isdb' | 'redis';
+export class MessageQueueClient {
+  private axiosInstance: AxiosInstance;
+  private socket: Socket | null = null;
 
-@Injectable()
-export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
-  private isdbClient: DatabaseClient;
-  private isdbDatabase: number;
-  private isdbUsername: string;
-  private isdbPassword: string;
-  private redisClient: Redis;
-  private storageType: StorageType;
-
-  constructor() {
-    this.storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
-    if (this.storageType === 'isdb') {
-      this.isdbDatabase = Number(process.env.ISDB_DATABASE || '1');
-      this.isdbUsername = process.env.ISDB_USERNAME || 'root';
-      this.isdbPassword = process.env.ISDB_PASSWORD || 'root';
-    }
+  constructor(baseURL: string) {
+    this.axiosInstance = axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
-  async onModuleInit() {
-    if (this.storageType === 'isdb') {
-      this.isdbClient = new DatabaseClient('http://localhost:6969');
-      await this.isdbClient.createUser(this.isdbUsername, this.isdbPassword);
-      await this.isdbClient.login(this.isdbUsername, this.isdbPassword);
+  async createExchange(name: string): Promise<any> {
+    const response = await this.axiosInstance.post('/message-broker/exchange', { name });
+    return response.data;
+  }
 
-    } else {
-      this.redisClient = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+  async bind(exchange: string, queue: string, routingKey: string): Promise<any> {
+    const response = await this.axiosInstance.post('/message-broker/bind', { exchange, queue, routingKey });
+    return response.data;
+  }
+
+  async publish(exchange: string, routingKey: string, message: any): Promise<any> {
+    const response = await this.axiosInstance.post('/message-broker/publish', { exchange, routingKey, message });
+    return response.data;
+  }
+
+  async consume(exchange: string, queue: string): Promise<any> {
+    const response = await this.axiosInstance.get(`/message-broker/consume/${exchange}/${queue}`);
+    return response.data;
+  }
+
+  async getQueueLength(exchange: string, queue: string): Promise<any> {
+    const response = await this.axiosInstance.get(`/message-broker/queue-length/${exchange}/${queue}`);
+    return response.data;
+  }
+
+  connectWebSocket(): Promise<void> {
+    return new Promise((resolve) => {
+      this.socket = io(this.axiosInstance.defaults.baseURL);
+      this.socket.on('connect', () => {
+        console.log('Connected to WebSocket server');
+        resolve();
       });
+    });
+  }
+
+  subscribeToQueue(exchange: string, queue: string, callback: (message: any) => void): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.socket) {
+        throw new Error('WebSocket is not connected. Call connectWebSocket() first.');
+      }
+      this.socket.emit('subscribe', { exchange, queue }, (response: any) => {
+        console.log(`Subscription response for ${exchange}/${queue}:`, response);
+        this.socket!.on('message', (data) => {
+          if (data.exchange === exchange && data.queue === queue) {
+            callback(data.message);
+          }
+        });
+        resolve();
+      });
+    });
+  }
+
+  disconnectWebSocket(): void {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
     }
   }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { MessageBrokerService } from './message-broker.service';
 
-  async onModuleDestroy() {
-    if (this.storageType === 'redis') {
-      await this.redisClient.quit();
+@WebSocketGateway()
+export class MessageBrokerGateway {
+  @WebSocketServer()
+  server: Server;
+
+  private subscriptions: Map<string, Set<Socket>> = new Map();
+
+  constructor(private readonly messageBrokerService: MessageBrokerService) {
+    this.subscribeToAllExchanges();
+  }
+
+  private subscribeToAllExchanges() {
+    this.messageBrokerService.onMessage((exchange, queue, message) => {
+      const subscriptionKey = `${exchange}:${queue}`;
+      const subscribers = this.subscriptions.get(subscriptionKey);
+      if (subscribers) {
+        // Select a random subscriber to consume the message
+        const randomSubscriber = Array.from(subscribers)[Math.floor(Math.random() * subscribers.size)];
+        randomSubscriber.emit('message', { exchange, queue, message });
+      }
+    });
+  }
+
+  @SubscribeMessage('subscribe')
+  handleSubscribe(
+    @MessageBody() data: { exchange: string; queue: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { exchange, queue } = data;
+    const subscriptionKey = `${exchange}:${queue}`;
+
+    if (!this.subscriptions.has(subscriptionKey)) {
+      this.subscriptions.set(subscriptionKey, new Set());
     }
-  }
 
-  private getQueueKey(exchangeName: string, queueName: string): string {
-    return `${exchangeName}:${queueName}`;
-  }
+    this.subscriptions.get(subscriptionKey).add(client);
 
-  async saveMessage(exchangeName: string, queueName: string, message: any): Promise<void> {
-    const queueKey = this.getQueueKey(exchangeName, queueName);
-    const messageData = JSON.stringify({
-      timestamp: Date.now(),
-      content: message
+    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
+      // This callback is not needed anymore as we're handling message distribution in onMessage
     });
 
-    if (this.storageType === 'isdb') {
-      await this.isdbClient.rpush(this.isdbDatabase, queueKey, [messageData]);
+    if (success) {
+      client.on('disconnect', () => {
+        const subscribers = this.subscriptions.get(subscriptionKey);
+        if (subscribers) {
+          subscribers.delete(client);
+          if (subscribers.size === 0) {
+            this.subscriptions.delete(subscriptionKey);
+          }
+        }
+        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
+      });
+      return { status: 'ok', message: 'Subscribed successfully' };
     } else {
-      await this.redisClient.rpush(queueKey, messageData);
-    }
-  }
-
-  async getMessages(exchangeName: string, queueName: string, count: number = 1): Promise<any[]> {
-    const queueKey = this.getQueueKey(exchangeName, queueName);
-    let messages: string[];
-
-    if (this.storageType === 'isdb') {
-      messages = await this.isdbClient.lrange(this.isdbDatabase, queueKey, 0, count - 1);
-    } else {
-      messages = await this.redisClient.lrange(queueKey, 0, count - 1);
-    }
-
-    return messages.map(msg => JSON.parse(msg));
-  }
-
-  async removeMessage(exchangeName: string, queueName: string): Promise<any> {
-    const queueKey = this.getQueueKey(exchangeName, queueName);
-    let message: string;
-
-    if (this.storageType === 'isdb') {
-      message = await this.isdbClient.lpop(this.isdbDatabase, queueKey);
-    } else {
-      message = await this.redisClient.lpop(queueKey);
-    }
-
-    return message ? JSON.parse(message) : null;
-  }
-
-  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
-    const queueKey = this.getQueueKey(exchangeName, queueName);
-
-    if (this.storageType === 'isdb') {
-      return await this.isdbClient.llen(this.isdbDatabase, queueKey);
-    } else {
-      return await this.redisClient.llen(queueKey);
+      return { status: 'error', message: 'Failed to subscribe' };
     }
   }
 }
@@ -449,6 +496,66 @@ export class MessageBrokerService {
   }
 }
 </FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.controller.ts">
+
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { MessageBrokerService } from './message-broker.service';
+
+@Controller('message-broker')
+export class MessageBrokerController {
+  constructor(private readonly messageBrokerService: MessageBrokerService) {}
+
+  @Post('exchange')
+  createExchange(@Body('name') name: string) {
+    this.messageBrokerService.createExchange(name);
+    return { status: 'ok', message: `Exchange ${name} created` };
+  }
+
+  @Post('bind')
+  bind(
+    @Body('exchange') exchange: string,
+    @Body('queue') queue: string,
+    @Body('routingKey') routingKey: string,
+  ) {
+    const result = this.messageBrokerService.bind(exchange, queue, routingKey);
+    return result
+      ? { status: 'ok', message: 'Binding created' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Post('publish')
+  publish(
+    @Body('exchange') exchange: string,
+    @Body('routingKey') routingKey: string,
+    @Body('message') message: any,
+  ) {
+    const result = this.messageBrokerService.publish(exchange, routingKey, message);
+    return result
+      ? { status: 'ok', message: 'Message published' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Get('consume/:exchange/:queue')
+  async consume(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const message = await this.messageBrokerService.consume(exchange, queue);
+    return message
+      ? { status: 'ok', message }
+      : { status: 'error', message: 'No message available or exchange/queue not found' };
+  }
+
+  @Get('queue-length/:exchange/:queue')
+  async getQueueLength(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const length = await this.messageBrokerService.getQueueLength(exchange, queue);
+    return { status: 'ok', length };
+  }
+}
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
 import { Module } from '@nestjs/common';
 import { MessageBrokerService } from './message-broker.service';
@@ -488,58 +595,116 @@ async function bootstrap() {
 bootstrap();
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/dist/message-storage/message-storage.service.d.ts">
-import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-export declare class MessageStorageService implements OnModuleInit, OnModuleDestroy {
-    private isdbClient;
-    private isdbDatabase;
-    private isdbUsername;
-    private isdbPassword;
-    private redisClient;
-    private storageType;
-    constructor();
-    onModuleInit(): Promise<void>;
-    onModuleDestroy(): Promise<void>;
-    private getQueueKey;
-    saveMessage(exchangeName: string, queueName: string, message: any): Promise<void>;
-    getMessages(exchangeName: string, queueName: string, count?: number): Promise<any[]>;
-    removeMessage(exchangeName: string, queueName: string): Promise<any>;
-    getQueueLength(exchangeName: string, queueName: string): Promise<number>;
+<FILE path="/home/travis/Projects/message-queue/test/test-websocket-client.ts">
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3030');
+
+socket.on('connect', () => {
+  console.log('Connected to WebSocket server');
+
+  // Subscribe to a queue
+  socket.emit('subscribe', { exchange: 'test-exchange', queue: 'test-queue' }, (response) => {
+    console.log('Subscription response:', response);
+  });
+
+  // Listen for messages
+  socket.on('message', (data) => {
+    console.log('Received message via WebSocket:', data);
+  });
+});
+
+socket.on('disconnect', () => {
+  console.log('Disconnected from WebSocket server');
+});
+
+// Keep the script running
+setInterval(() => {}, 1000);
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/client/examples/example:message-queue.stdout.txt">
+Creating exchange...
+Binding queue to exchange...
+Publishing messages...
+Checking queue length...
+Queue length: { status: 'ok', length: 5 }
+Consuming messages...
+Consumed message: { status: 'ok', message: 'Test message 1' }
+Consumed message: { status: 'ok', message: 'Test message 2' }
+Consumed message: { status: 'ok', message: 'Test message 3' }
+Connecting WebSocket...
+Connected to WebSocket server
+Subscribing to queue...
+Subscription response for test-exchange/test-queue: { status: 'ok', message: 'Subscribed successfully' }
+Publishing more messages...
+Disconnecting WebSocket...
+All operations completed successfully.
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
+Connected to WebSocket server
+Subscription response: { status: 'ok', message: 'Subscribed successfully' }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
 }
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/dist/message-broker/message-broker.service.d.ts">
+<FILE path="/home/travis/Projects/message-queue/src/queue/queue.ts">
+import { EventEmitter } from 'events';
 import { MessageStorageService } from '../message-storage/message-storage.service';
-import { Exchange } from '../exchange/exchange';
-export declare class MessageBrokerService {
-    private messageStorage;
-    private exchanges;
-    private eventEmitter;
-    constructor(messageStorage: MessageStorageService);
-    createExchange(name: string): Exchange;
-    getExchange(name: string): Exchange | undefined;
-    publish(exchangeName: string, routingKey: string, message: any): Promise<boolean>;
-    consume(exchangeName: string, queueName: string): Promise<any>;
-    bind(exchangeName: string, queueName: string, routingKey: string): boolean;
-    subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean;
-    unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean;
-    getQueueLength(exchangeName: string, queueName: string): Promise<number>;
-    onMessage(callback: (exchange: string, queue: string, message: any) => void): void;
-}
 
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/dist/message-broker/message-broker.module.d.ts">
-export declare class MessageBrokerModule {
-}
+export class Queue {
+  private eventEmitter = new EventEmitter();
 
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/dist/app.module.d.ts">
-export declare class AppModule {
-}
+  constructor(
+    private exchangeName: string,
+    private queueName: string,
+    private messageStorage: MessageStorageService
+  ) {}
 
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/dist/main.d.ts">
-export {};
+  async enqueue(message: any) {
+    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
+    this.eventEmitter.emit('message', message);
+  }
+
+  async dequeue(): Promise<any> {
+    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+    if (message) {
+      return message.content;
+    }
+    
+    return new Promise((resolve) => {
+      this.eventEmitter.once('message', async (newMessage) => {
+        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
+        resolve(newMessage);
+      });
+    });
+  }
+
+  subscribe(callback: (message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+
+  unsubscribe(callback: (message: any) => void) {
+    this.eventEmitter.off('message', callback);
+  }
+}
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/src/exchange/exchange.ts">
@@ -590,87 +755,160 @@ export class Exchange {
   }
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/queue/queue.ts">
-import { EventEmitter } from 'events';
-import { MessageStorageService } from '../message-storage/message-storage.service';
+<FILE path="/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts">
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import Redis from 'ioredis';
+import { DatabaseClient } from 'database-client';
 
-export class Queue {
-  private eventEmitter = new EventEmitter();
+type StorageType = 'isdb' | 'redis';
 
-  constructor(
-    private exchangeName: string,
-    private queueName: string,
-    private messageStorage: MessageStorageService
-  ) {}
+@Injectable()
+export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
+  private isdbClient: DatabaseClient;
+  private isdbDatabase: number;
+  private isdbUsername: string;
+  private isdbPassword: string;
+  private redisClient: Redis;
+  private storageType: StorageType;
 
-  async enqueue(message: any) {
-    await this.messageStorage.saveMessage(this.exchangeName, this.queueName, message);
-    this.eventEmitter.emit('message', message);
-  }
-
-  async dequeue(): Promise<any> {
-    const message = await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-    if (message) {
-      return message.content;
+  constructor() {
+    this.storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
+    if (this.storageType === 'isdb') {
+      this.isdbDatabase = Number(process.env.ISDB_DATABASE || '1');
+      this.isdbUsername = process.env.ISDB_USERNAME || 'root';
+      this.isdbPassword = process.env.ISDB_PASSWORD || 'root';
     }
-    
-    return new Promise((resolve) => {
-      this.eventEmitter.once('message', async (newMessage) => {
-        await this.messageStorage.removeMessage(this.exchangeName, this.queueName);
-        resolve(newMessage);
+  }
+
+  async onModuleInit() {
+    if (this.storageType === 'isdb') {
+      this.isdbClient = new DatabaseClient('http://localhost:6969');
+      await this.isdbClient.createUser(this.isdbUsername, this.isdbPassword);
+      await this.isdbClient.login(this.isdbUsername, this.isdbPassword);
+      await this.isdbClient.assignUserToDatabase(1)
+
+    } else {
+      this.redisClient = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
       });
+    }
+  }
+
+  async onModuleDestroy() {
+    if (this.storageType === 'redis') {
+      await this.redisClient.quit();
+    }
+  }
+
+  private getQueueKey(exchangeName: string, queueName: string): string {
+    return `${exchangeName}:${queueName}`;
+  }
+
+  async saveMessage(exchangeName: string, queueName: string, message: any): Promise<void> {
+    const queueKey = this.getQueueKey(exchangeName, queueName);
+    const messageData = JSON.stringify({
+      timestamp: Date.now(),
+      content: message
     });
+
+    if (this.storageType === 'isdb') {
+      await this.isdbClient.rpush(this.isdbDatabase, queueKey, [messageData]);
+    } else {
+      await this.redisClient.rpush(queueKey, messageData);
+    }
   }
 
-  subscribe(callback: (message: any) => void) {
-    this.eventEmitter.on('message', callback);
+  async getMessages(exchangeName: string, queueName: string, count: number = 1): Promise<any[]> {
+    const queueKey = this.getQueueKey(exchangeName, queueName);
+    let messages: string[];
+
+    if (this.storageType === 'isdb') {
+      messages = await this.isdbClient.lrange(this.isdbDatabase, queueKey, 0, count - 1);
+    } else {
+      messages = await this.redisClient.lrange(queueKey, 0, count - 1);
+    }
+
+    return messages.map(msg => JSON.parse(msg));
   }
 
-  unsubscribe(callback: (message: any) => void) {
-    this.eventEmitter.off('message', callback);
+  async removeMessage(exchangeName: string, queueName: string): Promise<any> {
+    const queueKey = this.getQueueKey(exchangeName, queueName);
+    let message: string;
+
+    if (this.storageType === 'isdb') {
+      message = await this.isdbClient.lpop(this.isdbDatabase, queueKey);
+    } else {
+      message = await this.redisClient.lpop(queueKey);
+      if (message) {
+        message = JSON.parse(message);
+      }
+    }
+
+    return message;
+  }
+
+  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
+    const queueKey = this.getQueueKey(exchangeName, queueName);
+
+    if (this.storageType === 'isdb') {
+      return await this.isdbClient.llen(this.isdbDatabase, queueKey);
+    } else {
+      return await this.redisClient.llen(queueKey);
+    }
   }
 }
-
 </FILE>
-<FILE path="start:dev.stdout.txt" TARGET>
-c[[90m7:07:42 PM[0m] Starting compilation in watch mode...
+<FILE path="client/examples/message-queue.ts" TARGET>
+import { MessageQueueClient } from "../src/index";
 
-[[90m7:07:44 PM[0m] Found 0 errors. Watching for file changes.
+const client = new MessageQueueClient('http://localhost:3030');
 
-node:internal/modules/cjs/loader:1148
-  throw err;
-  ^
+async function main() {
+  console.log('Creating exchange...');
+  await client.createExchange('test-exchange');
 
-Error: Cannot find module 'database/client'
-Require stack:
-- /home/travis/Projects/message-queue/dist/message-storage/message-storage.service.js
-- /home/travis/Projects/message-queue/dist/message-broker/message-broker.service.js
-- /home/travis/Projects/message-queue/dist/message-broker/message-broker.module.js
-- /home/travis/Projects/message-queue/dist/app.module.js
-- /home/travis/Projects/message-queue/dist/main.js
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1145:15)
-    at Module._load (node:internal/modules/cjs/loader:986:27)
-    at Module.require (node:internal/modules/cjs/loader:1233:19)
-    at require (node:internal/modules/helpers:179:18)
-    at Object.<anonymous> (/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts:3:1)
-    at Module._compile (node:internal/modules/cjs/loader:1358:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1416:10)
-    at Module.load (node:internal/modules/cjs/loader:1208:32)
-    at Module._load (node:internal/modules/cjs/loader:1024:12)
-    at Module.require (node:internal/modules/cjs/loader:1233:19) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [
-    '/home/travis/Projects/message-queue/dist/message-storage/message-storage.service.js',
-    '/home/travis/Projects/message-queue/dist/message-broker/message-broker.service.js',
-    '/home/travis/Projects/message-queue/dist/message-broker/message-broker.module.js',
-    '/home/travis/Projects/message-queue/dist/app.module.js',
-    '/home/travis/Projects/message-queue/dist/main.js'
-  ]
+  console.log('Binding queue to exchange...');
+  await client.bind('test-exchange', 'test-queue', 'test-route');
+
+  console.log('Publishing messages...');
+  await client.publish('test-exchange', 'test-route', 'message1');
+  await client.publish('test-exchange', 'test-route', 'message2');
+  await client.publish('test-exchange', 'test-route', 'message3');
+
+  console.log('Checking queue length...');
+  const queueLength = await client.getQueueLength('test-exchange', 'test-queue');
+  console.log('Queue length:', queueLength);
+
+  console.log('Consuming messages...');
+  for (let i = 0; i < 3; i++) {
+    const message = await client.consume('test-exchange', 'test-queue');
+    console.log('Consumed message:', message);
+  }
+
+  console.log('Connecting WebSocket...');
+  await client.connectWebSocket();
+
+  console.log('Subscribing to queue...');
+  await client.subscribeToQueue('test-exchange', 'test-queue', (message) => {
+    console.log('Received message via WebSocket:', message);
+  });
+
+  console.log('Publishing more messages...');
+  await client.publish('test-exchange', 'test-route', 'websocket message 1');
+  await client.publish('test-exchange', 'test-route', 'websocket message 2');
+
+  // Wait for a few seconds to receive WebSocket messages
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  console.log('Disconnecting WebSocket...');
+  client.disconnectWebSocket();
+
+  console.log('All operations completed successfully.');
 }
 
-Node.js v20.16.0
-
+main().catch(error => console.error('Error:', error));
 </FILE>
 <REQUEST>
-unable to import custom code through module
+never Received message via WebSocket via stdout in example message queue
 </REQUEST>
