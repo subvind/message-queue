@@ -1,7 +1,8 @@
 export declare class MessageQueueClient {
+    private verbose;
     private axiosInstance;
     private socket;
-    constructor(baseURL: string);
+    constructor(baseURL: string, config?: any);
     createExchange(name: string): Promise<any>;
     bind(exchange: string, queue: string, routingKey: string): Promise<any>;
     publish(exchange: string, routingKey: string, message: any): Promise<any>;
