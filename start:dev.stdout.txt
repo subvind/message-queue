@@ -1,36 +1,17 @@
-c[[90m3:08:01 PM[0m] Starting compilation in watch mode...
+c[[90m3:16:21 PM[0m] Starting compilation in watch mode...
 
-[[90m3:08:02 PM[0m] Found 0 errors. Watching for file changes.
+[[90m3:16:23 PM[0m] Found 0 errors. Watching for file changes.
 
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +7ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMessageBrokerModule dependencies initialized[39m[38;5;3m +0ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mMessageBrokerGateway subscribed to the "subscribe" message[39m[38;5;3m +8ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +1ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMessageBrokerController {/message-broker}:[39m[38;5;3m +0ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/exchange, POST} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/bind, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/publish, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/consume/:exchange/:queue, GET} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/queue-length/:exchange/:queue, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2186634  - [39m09/10/2024, 3:08:02 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +70ms[39m
-test subscribe
-test subscribe
-c[[90m3:10:38 PM[0m] File change detected. Starting incremental compilation...
-
-[[90m3:10:38 PM[0m] Found 0 errors. Watching for file changes.
-
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +7ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMessageBrokerModule dependencies initialized[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mMessageBrokerGateway subscribed to the "subscribe" message[39m[38;5;3m +8ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMessageBrokerController {/message-broker}:[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/exchange, POST} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/bind, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/publish, POST} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/consume/:exchange/:queue, GET} route[39m[38;5;3m +0ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/message-broker/queue-length/:exchange/:queue, GET} route[39m[38;5;3m +1ms[39m
-[32m[Nest] 2189214  - [39m09/10/2024, 3:10:39 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +67ms[39m
+[2024-09-10T20:16:23.610Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-10T20:16:23.619Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-10T20:16:23.619Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-10T20:16:23.625Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-10T20:16:23.626Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-10T20:16:23.627Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-10T20:16:23.627Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-10T20:16:23.628Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-10T20:16:23.629Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-10T20:16:23.629Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-10T20:16:23.699Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
