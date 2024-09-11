@@ -4,8 +4,12 @@ import { CustomLogger } from './logger/custom-logger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
 import { resolve } from 'path';
+import { EventEmitter } from 'events';
 
 async function bootstrap(logger: CustomLogger) {
+  // Increase the maximum number of listeners
+  EventEmitter.defaultMaxListeners = 100;
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger });
 
   app.useStaticAssets(resolve('./src/public'));

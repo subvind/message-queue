@@ -14,7 +14,7 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   private storageType: StorageType;
 
   constructor() {
-    this.storageType = (process.env.STORAGE_TYPE as StorageType) || 'redis';
+    this.storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
     if (this.storageType === 'isdb') {
       this.isdbDatabase = Number(process.env.ISDB_DATABASE || '1');
       this.isdbUsername = process.env.ISDB_USERNAME || 'root';

@@ -17,9 +17,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 1 bytes
   Number of Messages: 1000
-  Messages Received: 999
-  Total Duration: 30006ms
-  Throughput: 33.29 messages/second
+  Messages Received: 1000
+  Total Duration: 803ms
+  Throughput: 1245.33 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 100 bytes and 1000 messages
 Exchange created and queue bound
@@ -39,9 +39,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 100 bytes
   Number of Messages: 1000
-  Messages Received: 999
-  Total Duration: 30004ms
-  Throughput: 33.30 messages/second
+  Messages Received: 1000
+  Total Duration: 640ms
+  Throughput: 1562.50 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 1000 bytes and 1000 messages
 Exchange created and queue bound
@@ -61,9 +61,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 1000 bytes
   Number of Messages: 1000
-  Messages Received: 999
-  Total Duration: 30001ms
-  Throughput: 33.30 messages/second
+  Messages Received: 1000
+  Total Duration: 485ms
+  Throughput: 2061.86 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 10000 bytes and 1000 messages
 Exchange created and queue bound
@@ -83,9 +83,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 10000 bytes
   Number of Messages: 1000
-  Messages Received: 999
-  Total Duration: 30004ms
-  Throughput: 33.30 messages/second
+  Messages Received: 1000
+  Total Duration: 648ms
+  Throughput: 1543.21 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 100000 bytes and 1000 messages
 Exchange created and queue bound
@@ -105,18 +105,18 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 100000 bytes
   Number of Messages: 1000
-  Messages Received: 998
-  Total Duration: 30006ms
-  Throughput: 33.26 messages/second
+  Messages Received: 1000
+  Total Duration: 1578ms
+  Throughput: 633.71 messages/second
 Disconnected from WebSocket
 All e2e benchmarks completed
 
 Benchmark Summary:
 ------------------
-Message Size: 1 bytes, Throughput: 33.29 messages/second
-Message Size: 100 bytes, Throughput: 33.30 messages/second
-Message Size: 1000 bytes, Throughput: 33.30 messages/second
-Message Size: 10000 bytes, Throughput: 33.30 messages/second
-Message Size: 100000 bytes, Throughput: 33.26 messages/second
+Message Size: 1 bytes, Throughput: 1245.33 messages/second
+Message Size: 100 bytes, Throughput: 1562.50 messages/second
+Message Size: 1000 bytes, Throughput: 2061.86 messages/second
+Message Size: 10000 bytes, Throughput: 1543.21 messages/second
+Message Size: 100000 bytes, Throughput: 633.71 messages/second
 
-Average Throughput: 33.29 messages/second
+Average Throughput: 1409.32 messages/second
