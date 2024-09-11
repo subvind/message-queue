@@ -75,6 +75,7 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   }
 
   async removeMessage(exchangeName: string, queueName: string): Promise<any> {
+    // console.log('removeMessage', exchangeName, queueName);
     const queueKey = this.getQueueKey(exchangeName, queueName);
     let message: string;
 

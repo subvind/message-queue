@@ -1,0 +1,5 @@
+Starting all e2e benchmarks
+Starting e2e benchmark with message size 10 bytes and 500 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }

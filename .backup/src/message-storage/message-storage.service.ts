@@ -75,7 +75,7 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
 
   async removeMessage(exchangeName: string, queueName: string): Promise<any> {
     const queueKey = this.getQueueKey(exchangeName, queueName);
-    let message: string;
+    let message: string | null;
 
     if (this.storageType === 'isdb') {
       message = await this.isdbClient.lpop(this.isdbDatabase, queueKey);

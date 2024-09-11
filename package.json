@@ -14,7 +14,8 @@
     "test:consumer": "ts-node ./test/test-consumer.ts 2>&1 | tee test:consumer.stdout.txt",
     "test:message-routing": "ts-node ./test/test-message-routing.ts 2>&1 | tee test:message-routing.stdout.txt",
     "test:producer": "ts-node ./test/test-producer.ts 2>&1 | tee test:producer.stdout.txt",
-    "test:websocket-client": "ts-node ./test/test-websocket-client.ts 2>&1 | tee test:websocket-client.stdout.txt"
+    "test:websocket-client": "ts-node ./test/test-websocket-client.ts 2>&1 | tee test:websocket-client.stdout.txt",
+    "benchmark:message-queue": "ts-node ./benchmarks/message-queue.benchmark.ts 2>&1 | tee benchmark:message-queue.stdout.txt"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

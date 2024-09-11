@@ -20,11 +20,12 @@ export class MessageBrokerGateway {
   }
 
   private subscribeToAllExchanges() {
-    this.messageBrokerService.onMessage((exchange, queue, message) => {
-      // console.log(`Received message for ${exchange}/${queue}:`, message);
+    this.messageBrokerService.onMessage(async (exchange, queue, message) => {
       const subscriptionKey = `${exchange}:${queue}`;
       const subscribers = this.subscriptions.get(subscriptionKey);
       if (subscribers) {
+        // Consume the message from the queue
+        await this.messageBrokerService.consume(exchange, queue);
         subscribers.forEach(subscriber => {
           subscriber.emit('message', { exchange, queue, message });
         });
