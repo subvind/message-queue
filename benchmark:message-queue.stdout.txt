@@ -1,5 +1,5 @@
 Starting all e2e benchmarks
-Starting e2e benchmark with message size 10 bytes and 1000 messages
+Starting e2e benchmark with message size 1 bytes and 1000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -15,10 +15,11 @@ Published 900 messages
 Published 1000 messages
 Finished publishing 1000 messages
 E2E Benchmark Results:
-  Message Size: 10 bytes
+  Message Size: 1 bytes
   Number of Messages: 1000
-  Total Duration: 1127ms
-  Throughput: 887.31 messages/second
+  Messages Received: 999
+  Total Duration: 30006ms
+  Throughput: 33.29 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 100 bytes and 1000 messages
 Exchange created and queue bound
@@ -38,8 +39,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 100 bytes
   Number of Messages: 1000
-  Total Duration: 983ms
-  Throughput: 1017.29 messages/second
+  Messages Received: 999
+  Total Duration: 30004ms
+  Throughput: 33.30 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 1000 bytes and 1000 messages
 Exchange created and queue bound
@@ -59,8 +61,9 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 1000 bytes
   Number of Messages: 1000
-  Total Duration: 640ms
-  Throughput: 1562.50 messages/second
+  Messages Received: 999
+  Total Duration: 30001ms
+  Throughput: 33.30 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 10000 bytes and 1000 messages
 Exchange created and queue bound
@@ -80,7 +83,40 @@ Finished publishing 1000 messages
 E2E Benchmark Results:
   Message Size: 10000 bytes
   Number of Messages: 1000
-  Total Duration: 824ms
-  Throughput: 1213.59 messages/second
+  Messages Received: 999
+  Total Duration: 30004ms
+  Throughput: 33.30 messages/second
+Disconnected from WebSocket
+Starting e2e benchmark with message size 100000 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 100000 bytes
+  Number of Messages: 1000
+  Messages Received: 998
+  Total Duration: 30006ms
+  Throughput: 33.26 messages/second
 Disconnected from WebSocket
 All e2e benchmarks completed
+
+Benchmark Summary:
+------------------
+Message Size: 1 bytes, Throughput: 33.29 messages/second
+Message Size: 100 bytes, Throughput: 33.30 messages/second
+Message Size: 1000 bytes, Throughput: 33.30 messages/second
+Message Size: 10000 bytes, Throughput: 33.30 messages/second
+Message Size: 100000 bytes, Throughput: 33.26 messages/second
+
+Average Throughput: 33.29 messages/second
