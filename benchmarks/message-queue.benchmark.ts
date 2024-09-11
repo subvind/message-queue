@@ -29,21 +29,18 @@ async function runBenchmark(messageSize: number, numMessages: number): Promise<v
     let received = 0;
     const startTime = Date.now();
 
-    await new Promise<void>((resolve, reject) => {
-      client.subscribeToQueue(exchange, queue, () => {
-        received++;
-        if (received === numMessages) {
-          const endTime = Date.now();
-          const duration = endTime - startTime;
-          const throughput = (numMessages / duration) * 1000;
-          console.log(`E2E Benchmark Results:`);
-          console.log(`  Message Size: ${messageSize} bytes`);
-          console.log(`  Number of Messages: ${numMessages}`);
-          console.log(`  Total Duration: ${duration}ms`);
-          console.log(`  Throughput: ${throughput.toFixed(2)} messages/second`);
-          resolve();
-        }
-      }).catch(reject);
+    client.subscribeToQueue(exchange, queue, (message) => {
+      received++;
+      if (received === numMessages) {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        const throughput = (numMessages / duration) * 1000;
+        console.log(`E2E Benchmark Results:`);
+        console.log(`  Message Size: ${messageSize} bytes`);
+        console.log(`  Number of Messages: ${numMessages}`);
+        console.log(`  Total Duration: ${duration}ms`);
+        console.log(`  Throughput: ${throughput.toFixed(2)} messages/second`);
+      }
     });
 
     const message = generateMessage(messageSize);
@@ -74,8 +71,8 @@ async function runBenchmark(messageSize: number, numMessages: number): Promise<v
 }
 
 async function runAllBenchmarks(): Promise<void> {
-  const messageSizes = [10, 100, 1000];
-  const numMessages = 500;
+  const messageSizes = [10, 100, 1000, 10000];
+  const numMessages = 1000;
 
   console.log('Starting all e2e benchmarks');
 

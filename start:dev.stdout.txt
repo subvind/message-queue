@@ -1,17 +1,17 @@
-c[[90m5:21:37 PM[0m] Starting compilation in watch mode...
+c[[90m5:30:45 PM[0m] Starting compilation in watch mode...
 
-[[90m5:21:38 PM[0m] Found 0 errors. Watching for file changes.
+[[90m5:30:46 PM[0m] Found 0 errors. Watching for file changes.
 
-[2024-09-11T22:21:39.133Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
-[2024-09-11T22:21:39.140Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
-[2024-09-11T22:21:39.141Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
-[2024-09-11T22:21:39.147Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
-[2024-09-11T22:21:39.148Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
-[2024-09-11T22:21:39.149Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
-[2024-09-11T22:21:39.149Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
-[2024-09-11T22:21:39.150Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
-[2024-09-11T22:21:39.150Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
-[2024-09-11T22:21:39.150Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
-[2024-09-11T22:21:39.150Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
-[2024-09-11T22:21:39.151Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
-[2024-09-11T22:21:39.220Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
+[2024-09-11T22:30:47.078Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
+[2024-09-11T22:30:47.085Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
+[2024-09-11T22:30:47.085Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
+[2024-09-11T22:30:47.092Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
+[2024-09-11T22:30:47.093Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
+[2024-09-11T22:30:47.094Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
+[2024-09-11T22:30:47.094Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
+[2024-09-11T22:30:47.095Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
+[2024-09-11T22:30:47.095Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
+[2024-09-11T22:30:47.095Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
+[2024-09-11T22:30:47.096Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
+[2024-09-11T22:30:47.096Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
+[2024-09-11T22:30:47.165Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
