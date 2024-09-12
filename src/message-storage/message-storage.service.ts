@@ -1,46 +1,73 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import Redis from 'ioredis';
-import { DatabaseClient } from 'database-client';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { StorageAdapter } from './storage-adapter.interface';
+import { IsdbAdapter } from './isdb-adapter';
+import { RedisAdapter } from './redis-adapter';
 
 type StorageType = 'isdb' | 'redis';
 
 @Injectable()
 export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
-  private isdbClient: DatabaseClient;
-  private isdbDatabase: number;
-  private isdbUsername: string;
-  private isdbPassword: string;
-  private redisClient: Redis;
-  private storageType: StorageType;
+  private storageAdapter: StorageAdapter;
+  private logger = new Logger(MessageStorageService.name);
+  private reconnectionInterval: NodeJS.Timeout;
 
   constructor() {
-    this.storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
-    if (this.storageType === 'isdb') {
-      this.isdbDatabase = Number(process.env.ISDB_DATABASE || '1');
-      this.isdbUsername = process.env.ISDB_USERNAME || 'root';
-      this.isdbPassword = process.env.ISDB_PASSWORD || 'root';
+    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
+    this.storageAdapter = this.createStorageAdapter(storageType);
+  }
+
+  private createStorageAdapter(storageType: StorageType): StorageAdapter {
+    switch (storageType) {
+      case 'isdb':
+        return new IsdbAdapter({
+          database: Number(process.env.ISDB_DATABASE || '1'),
+          username: process.env.ISDB_USERNAME || 'root',
+          password: process.env.ISDB_PASSWORD || 'root',
+        });
+      case 'redis':
+        return new RedisAdapter({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+        });
+      default:
+        throw new Error(`Unsupported storage type: ${storageType}`);
     }
   }
 
   async onModuleInit() {
-    if (this.storageType === 'isdb') {
-      this.isdbClient = new DatabaseClient('http://localhost:6969');
-      await this.isdbClient.createUser(this.isdbUsername, this.isdbPassword);
-      await this.isdbClient.login(this.isdbUsername, this.isdbPassword);
-      await this.isdbClient.assignUserToDatabase(1)
+    await this.connectWithRetry();
+    this.startReconnectionInterval();
+  }
 
-    } else {
-      this.redisClient = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      });
+  private startReconnectionInterval() {
+    this.reconnectionInterval = setInterval(async () => {
+      if (!this.storageAdapter.isConnected()) {
+        this.logger.warn('Connection lost. Attempting to reconnect...');
+        await this.connectWithRetry();
+      }
+    }, 5000);
+  }
+
+  private async connectWithRetry(retryCount = 0): Promise<void> {
+    try {
+      await this.storageAdapter.connect();
+      this.logger.log('Successfully connected to the database');
+    } catch (error) {
+      if (retryCount < this.storageAdapter.maxRetries) {
+        const delay = this.storageAdapter.initialRetryDelay * Math.pow(2, retryCount);
+        this.logger.warn(`Failed to connect. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await this.connectWithRetry(retryCount + 1);
+      } else {
+        this.logger.error('Max retries reached. Unable to connect to the database.');
+        this.logger.error(error);
+      }
     }
   }
 
   async onModuleDestroy() {
-    if (this.storageType === 'redis') {
-      await this.redisClient.quit();
-    }
+    clearInterval(this.reconnectionInterval);
+    await this.storageAdapter.disconnect();
   }
 
   private getQueueKey(exchangeName: string, queueName: string): string {
@@ -54,50 +81,42 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
       content: message
     });
 
-    if (this.storageType === 'isdb') {
-      await this.isdbClient.rpush(this.isdbDatabase, queueKey, [messageData]);
-    } else {
-      await this.redisClient.rpush(queueKey, messageData);
+    try {
+      await this.storageAdapter.rpush(queueKey, messageData);
+    } catch (error) {
+      this.logger.error(`Failed to save message: ${error.message}`);
     }
   }
 
   async getMessages(exchangeName: string, queueName: string, count: number = 1): Promise<any[]> {
     const queueKey = this.getQueueKey(exchangeName, queueName);
-    let messages: string[];
-
-    if (this.storageType === 'isdb') {
-      messages = await this.isdbClient.lrange(this.isdbDatabase, queueKey, 0, count - 1);
-    } else {
-      messages = await this.redisClient.lrange(queueKey, 0, count - 1);
+    try {
+      const messages = await this.storageAdapter.lrange(queueKey, 0, count - 1);
+      return messages.map(msg => JSON.parse(msg));
+    } catch (error) {
+      this.logger.error(`Failed to get messages: ${error.message}`);
+      return [];
     }
-
-    return messages.map(msg => JSON.parse(msg));
   }
 
   async removeMessage(exchangeName: string, queueName: string): Promise<any> {
-    // console.log('removeMessage', exchangeName, queueName);
     const queueKey = this.getQueueKey(exchangeName, queueName);
-    let message: string;
-
-    if (this.storageType === 'isdb') {
-      message = await this.isdbClient.lpop(this.isdbDatabase, queueKey);
-    } else {
-      message = await this.redisClient.lpop(queueKey);
-      if (message) {
-        message = JSON.parse(message);
-      }
+    try {
+      const message = await this.storageAdapter.lpop(queueKey);
+      return message ? JSON.parse(message) : null;
+    } catch (error) {
+      this.logger.error(`Failed to remove message: ${error.message}`);
+      return null;
     }
-
-    return message;
   }
 
   async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
     const queueKey = this.getQueueKey(exchangeName, queueName);
-
-    if (this.storageType === 'isdb') {
-      return await this.isdbClient.llen(this.isdbDatabase, queueKey);
-    } else {
-      return await this.redisClient.llen(queueKey);
+    try {
+      return await this.storageAdapter.llen(queueKey);
+    } catch (error) {
+      this.logger.error(`Failed to get queue length: ${error.message}`);
+      return 0;
     }
   }
 }

@@ -18,8 +18,8 @@ E2E Benchmark Results:
   Message Size: 1 bytes
   Number of Messages: 1000
   Messages Received: 1000
-  Total Duration: 803ms
-  Throughput: 1245.33 messages/second
+  Total Duration: 1390ms
+  Throughput: 719.42 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 100 bytes and 1000 messages
 Exchange created and queue bound
@@ -40,8 +40,8 @@ E2E Benchmark Results:
   Message Size: 100 bytes
   Number of Messages: 1000
   Messages Received: 1000
-  Total Duration: 640ms
-  Throughput: 1562.50 messages/second
+  Total Duration: 1159ms
+  Throughput: 862.81 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 1000 bytes and 1000 messages
 Exchange created and queue bound
@@ -62,8 +62,8 @@ E2E Benchmark Results:
   Message Size: 1000 bytes
   Number of Messages: 1000
   Messages Received: 1000
-  Total Duration: 485ms
-  Throughput: 2061.86 messages/second
+  Total Duration: 764ms
+  Throughput: 1308.90 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 10000 bytes and 1000 messages
 Exchange created and queue bound
@@ -84,8 +84,8 @@ E2E Benchmark Results:
   Message Size: 10000 bytes
   Number of Messages: 1000
   Messages Received: 1000
-  Total Duration: 648ms
-  Throughput: 1543.21 messages/second
+  Total Duration: 963ms
+  Throughput: 1038.42 messages/second
 Disconnected from WebSocket
 Starting e2e benchmark with message size 100000 bytes and 1000 messages
 Exchange created and queue bound
@@ -106,17 +106,17 @@ E2E Benchmark Results:
   Message Size: 100000 bytes
   Number of Messages: 1000
   Messages Received: 1000
-  Total Duration: 1578ms
-  Throughput: 633.71 messages/second
+  Total Duration: 2277ms
+  Throughput: 439.17 messages/second
 Disconnected from WebSocket
 All e2e benchmarks completed
 
 Benchmark Summary:
 ------------------
-Message Size: 1 bytes, Throughput: 1245.33 messages/second
-Message Size: 100 bytes, Throughput: 1562.50 messages/second
-Message Size: 1000 bytes, Throughput: 2061.86 messages/second
-Message Size: 10000 bytes, Throughput: 1543.21 messages/second
-Message Size: 100000 bytes, Throughput: 633.71 messages/second
+Message Size: 1 bytes, Throughput: 719.42 messages/second
+Message Size: 100 bytes, Throughput: 862.81 messages/second
+Message Size: 1000 bytes, Throughput: 1308.90 messages/second
+Message Size: 10000 bytes, Throughput: 1038.42 messages/second
+Message Size: 100000 bytes, Throughput: 439.17 messages/second
 
-Average Throughput: 1409.32 messages/second
+Average Throughput: 873.75 messages/second
