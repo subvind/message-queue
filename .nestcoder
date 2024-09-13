@@ -285,49 +285,6 @@ export interface StorageAdapter {
   initialRetryDelay: number;
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-storage/redis-adapter.ts">
-import { StorageAdapter } from './storage-adapter.interface';
-import Redis from 'ioredis';
-
-export class RedisAdapter implements StorageAdapter {
-  private client: Redis;
-
-  maxRetries = 5;
-  initialRetryDelay = 1000;
-
-  constructor(config: { host: string; port: number }) {
-    this.client = new Redis(config);
-  }
-
-  async connect(): Promise<void> {
-    // Redis client automatically connects when created
-  }
-
-  async disconnect(): Promise<void> {
-    await this.client.quit();
-  }
-
-  isConnected(): boolean {
-    return this.client.status === 'ready';
-  }
-
-  async rpush(key: string, value: string): Promise<void> {
-    await this.client.rpush(key, value);
-  }
-
-  async lrange(key: string, start: number, stop: number): Promise<string[]> {
-    return await this.client.lrange(key, start, stop);
-  }
-
-  async lpop(key: string): Promise<string | null> {
-    return await this.client.lpop(key);
-  }
-
-  async llen(key: string): Promise<number> {
-    return await this.client.llen(key);
-  }
-}
-</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/message-storage/message-storage.service.ts">
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { StorageAdapter } from './storage-adapter.interface';
@@ -452,6 +409,336 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   }
 }
 </FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-storage/redis-adapter.ts">
+import { StorageAdapter } from './storage-adapter.interface';
+import Redis from 'ioredis';
+
+export class RedisAdapter implements StorageAdapter {
+  private client: Redis;
+
+  maxRetries = 5;
+  initialRetryDelay = 1000;
+
+  constructor(config: { host: string; port: number }) {
+    this.client = new Redis(config);
+  }
+
+  async connect(): Promise<void> {
+    // Redis client automatically connects when created
+  }
+
+  async disconnect(): Promise<void> {
+    await this.client.quit();
+  }
+
+  isConnected(): boolean {
+    return this.client.status === 'ready';
+  }
+
+  async rpush(key: string, value: string): Promise<void> {
+    await this.client.rpush(key, value);
+  }
+
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    return await this.client.lrange(key, start, stop);
+  }
+
+  async lpop(key: string): Promise<string | null> {
+    return await this.client.lpop(key);
+  }
+
+  async llen(key: string): Promise<number> {
+    return await this.client.llen(key);
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-storage/isdb-adapter.ts">
+import { StorageAdapter } from './storage-adapter.interface';
+import { DatabaseClient } from 'database-client';
+
+export class IsdbAdapter implements StorageAdapter {
+  private client: DatabaseClient;
+  private database: number;
+  private username: string;
+  private password: string;
+
+  maxRetries = 5;
+  initialRetryDelay = 1000;
+
+  constructor(config: { database: number; username: string; password: string }) {
+    this.database = config.database;
+    this.username = config.username;
+    this.password = config.password;
+  }
+
+  async connect(): Promise<void> {
+    this.client = new DatabaseClient('http://localhost:6969');
+    await this.client.createUser(this.username, this.password);
+    await this.client.login(this.username, this.password);
+    await this.client.assignUserToDatabase(this.database);
+  }
+
+  async disconnect(): Promise<void> {
+    // Implement disconnect if needed
+  }
+
+  isConnected(): boolean {
+    return this.client ? true : false;
+  }
+
+  async rpush(key: string, value: string): Promise<void> {
+    await this.client.rpush(this.database, key, [value]);
+  }
+
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    const result = await this.client.lrange(this.database, key, start, stop);
+    return result.map(item => JSON.stringify(item));
+  }
+
+  async lpop(key: string): Promise<string | null> {
+    const result = await this.client.lpop(this.database, key);
+    return result ? JSON.stringify(result) : null;
+  }
+
+  async llen(key: string): Promise<number> {
+    return await this.client.llen(this.database, key);
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
+import { Injectable } from '@nestjs/common';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+import { Exchange } from '../exchange/exchange';
+import { EventEmitter } from 'events';
+
+@Injectable()
+export class MessageBrokerService {
+  private exchanges: Map<string, Exchange> = new Map();
+  private eventEmitter: EventEmitter = new EventEmitter();
+
+  constructor(private messageStorage: MessageStorageService) {}
+
+  createExchange(name: string): Exchange {
+    if (!this.exchanges.has(name)) {
+      const exchange = new Exchange(name, this.messageStorage);
+      this.exchanges.set(name, exchange);
+      return exchange;
+    }
+    return this.exchanges.get(name);
+  }
+
+  getExchange(name: string): Exchange | undefined {
+    return this.exchanges.get(name);
+  }
+
+  async publish(exchangeName: string, routingKey: string, message: any): Promise<boolean> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      await exchange.publish(routingKey, message);
+      // Emit the message to all bound queues
+      const boundQueues = exchange.getBoundQueues(routingKey);
+      for (const queue of boundQueues) {
+        this.eventEmitter.emit('message', exchangeName, queue, message);
+      }
+      // console.log(`Published message to ${exchangeName}/${routingKey}:`, message);
+      return true;
+    }
+    return false;
+  }
+
+  async consume(exchangeName: string, queueName: string): Promise<any> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      return await exchange.consume(queueName);
+    }
+    return null;
+  }
+
+  bind(exchangeName: string, queueName: string, routingKey: string): boolean {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      exchange.bind(queueName, routingKey);
+      return true;
+    }
+    return false;
+  }
+
+  subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+    // console.log(`Subscribing to ${exchangeName}/${queueName}`);
+    this.eventEmitter.on('message', (exchange, queue, message) => {
+      if (exchange === exchangeName && queue === queueName) {
+        callback(message);
+      }
+    });
+    return true;
+  }
+
+  unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
+    this.eventEmitter.removeListener('message', callback);
+    return true;
+  }
+
+  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
+    const exchange = this.getExchange(exchangeName);
+    if (exchange) {
+      return await exchange.getQueueLength(queueName);
+    }
+    return 0;
+  }
+
+  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
+    this.eventEmitter.on('message', callback);
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.controller.ts">
+
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { MessageBrokerService } from './message-broker.service';
+
+@Controller('message-broker')
+export class MessageBrokerController {
+  constructor(private readonly messageBrokerService: MessageBrokerService) {}
+
+  @Post('exchange')
+  createExchange(@Body('name') name: string) {
+    this.messageBrokerService.createExchange(name);
+    return { status: 'ok', message: `Exchange ${name} created` };
+  }
+
+  @Post('bind')
+  bind(
+    @Body('exchange') exchange: string,
+    @Body('queue') queue: string,
+    @Body('routingKey') routingKey: string,
+  ) {
+    const result = this.messageBrokerService.bind(exchange, queue, routingKey);
+    return result
+      ? { status: 'ok', message: 'Binding created' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Post('publish')
+  publish(
+    @Body('exchange') exchange: string,
+    @Body('routingKey') routingKey: string,
+    @Body('message') message: any,
+  ) {
+    const result = this.messageBrokerService.publish(exchange, routingKey, message);
+    return result
+      ? { status: 'ok', message: 'Message published' }
+      : { status: 'error', message: 'Exchange not found' };
+  }
+
+  @Get('consume/:exchange/:queue')
+  async consume(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const message = await this.messageBrokerService.consume(exchange, queue);
+    return message
+      ? { status: 'ok', message }
+      : { status: 'error', message: 'No message available or exchange/queue not found' };
+  }
+
+  @Get('queue-length/:exchange/:queue')
+  async getQueueLength(
+    @Param('exchange') exchange: string,
+    @Param('queue') queue: string,
+  ) {
+    const length = await this.messageBrokerService.getQueueLength(exchange, queue);
+    return { status: 'ok', length };
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { MessageBrokerService } from './message-broker.service';
+
+@WebSocketGateway()
+export class MessageBrokerGateway {
+  @WebSocketServer()
+  server: Server;
+
+  private subscriptions: Map<string, Set<Socket>> = new Map();
+
+  constructor(private readonly messageBrokerService: MessageBrokerService) {
+    this.subscribeToAllExchanges();
+  }
+
+  private subscribeToAllExchanges() {
+    this.messageBrokerService.onMessage(async (exchange, queue, message) => {
+      const subscriptionKey = `${exchange}:${queue}`;
+      const subscribers = this.subscriptions.get(subscriptionKey);
+      if (subscribers) {
+        // Consume the message from the queue
+        await this.messageBrokerService.consume(exchange, queue);
+        subscribers.forEach(subscriber => {
+          subscriber.emit('message', { exchange, queue, message });
+        });
+      }
+    });
+  }
+
+  @SubscribeMessage('subscribe')
+  handleSubscribe(
+    @MessageBody() data: { exchange: string; queue: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { exchange, queue } = data;
+    const subscriptionKey = `${exchange}:${queue}`;
+
+    if (!this.subscriptions.has(subscriptionKey)) {
+      this.subscriptions.set(subscriptionKey, new Set());
+    }
+
+    this.subscriptions.get(subscriptionKey).add(client);
+
+    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
+      // this emit is already in messageBrokerService.onMessage
+      // adding it will only cause duplicate messages
+      // client.emit('message', { exchange, queue, message });
+    });
+
+    if (success) {
+      client.on('disconnect', () => {
+        const subscribers = this.subscriptions.get(subscriptionKey);
+        if (subscribers) {
+          subscribers.delete(client);
+          if (subscribers.size === 0) {
+            this.subscriptions.delete(subscriptionKey);
+          }
+        }
+        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
+      });
+      return { status: 'ok', message: 'Subscribed successfully' };
+    } else {
+      return { status: 'error', message: 'Failed to subscribe' };
+    }
+  }
+}
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
+import { Module } from '@nestjs/common';
+import { MessageBrokerService } from './message-broker.service';
+import { MessageBrokerController } from './message-broker.controller';
+import { MessageBrokerGateway } from './message-broker.gateway';
+import { MessageStorageService } from '../message-storage/message-storage.service';
+
+@Module({
+  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
+  controllers: [MessageBrokerController],
+})
+export class MessageBrokerModule {}
+
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/logger/custom-logger.ts">
 import { ConsoleLogger, Injectable, Inject } from '@nestjs/common';
 import * as fs from 'fs';
@@ -521,20 +808,6 @@ export class CustomLogger extends ConsoleLogger {
   }
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MessageBrokerModule } from './message-broker/message-broker.module';
-
-@Module({
-  imports: [MessageBrokerModule],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-
-</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/main.ts">
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -570,108 +843,62 @@ const logger = new CustomLogger('Bootstrap');
 bootstrap(logger);
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/client/dist/index.d.ts">
-export declare class MessageQueueClient {
-    private verbose;
-    private axiosInstance;
-    private socket;
-    constructor(baseURL: string, config?: any);
-    createExchange(name: string): Promise<any>;
-    bind(exchange: string, queue: string, routingKey: string): Promise<any>;
-    publish(exchange: string, routingKey: string, message: any): Promise<any>;
-    consume(exchange: string, queue: string): Promise<any>;
-    getQueueLength(exchange: string, queue: string): Promise<any>;
-    connectWebSocket(): Promise<void>;
-    subscribeToQueue(exchange: string, queue: string, callback: (message: any) => void): Promise<void>;
-    disconnectWebSocket(): void;
-}
+<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MessageBrokerModule } from './message-broker/message-broker.module';
+
+@Module({
+  imports: [MessageBrokerModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-consumer.ts">
-import axios from 'axios';
+<FILE path="/home/travis/Projects/message-queue/src/app.service.ts">
+import { Injectable } from '@nestjs/common';
 
-async function testConsumer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
-
-  try {
-    while (true) {
-      const response = await axios.get(`${baseUrl}/consume/test-exchange/test-queue`);
-      if (response.data.status === 'ok') {
-        console.log('Received message:', response.data.message);
-      } else {
-        console.log('No message available');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before trying again
-      }
-    }
-  } catch (error) {
-    console.error('Error:', error.response ? error.response.data : error.message);
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'Hello World!';
   }
 }
 
-testConsumer();
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/test/test-producer.ts">
-import axios from 'axios';
+<FILE path="/home/travis/Projects/message-queue/src/app.controller.ts">
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
 
-async function testProducer() {
-  const baseUrl = 'http://localhost:3030/message-broker';
+@Controller()
+export class AppController {
+  constructor(private readonly appService: AppService) {}
 
-  try {
-    // Create an exchange
-    await axios.post(`${baseUrl}/exchange`, { name: 'test-exchange' });
-    console.log('Exchange created');
-
-    // Bind a queue to the exchange
-    await axios.post(`${baseUrl}/bind`, {
-      exchange: 'test-exchange',
-      queue: 'test-queue',
-      routingKey: 'test-queue'
-    });
-    console.log('Queue bound to exchange');
-
-    // Publish messages
-    for (let i = 0; i < 5; i++) {
-      await axios.post(`${baseUrl}/publish`, {
-        exchange: 'test-exchange',
-        routingKey: 'test-queue',
-        message: `Test message ${i + 1}`
-      });
-      console.log(`Published message ${i + 1}`);
-    }
-
-    // Get queue length
-    const response = await axios.get(`${baseUrl}/queue-length/test-exchange/test-queue`);
-    console.log(`Queue length: ${response.data.length}`);
-
-  } catch (error) {
-    console.error('Error:', error.response ? error.response.data : error.message);
+  @Get()
+  getHello(): string {
+    return this.appService.getHello();
   }
 }
 
-testProducer();
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/start:dev.stdout.txt">
-c[[90m11:55:13 PM[0m] Starting compilation in watch mode...
+c[[90m11:07:19 AM[0m] Starting compilation in watch mode...
 
-[[90m11:55:15 PM[0m] Found 0 errors. Watching for file changes.
+[96msrc/message-storage/aerospike-adapter.ts[0m:[93m5[0m:[93m29[0m - [91merror[0m[90m TS2724: [0m'"aerospike"' has no exported member named 'Client'. Did you mean 'client'?
 
-[2024-09-12T04:55:15.661Z] [LOG] [Bootstrap] [NestFactory] Starting Nest application...
-[2024-09-12T04:55:15.669Z] [LOG] [Bootstrap] [InstanceLoader] AppModule dependencies initialized
-[2024-09-12T04:55:15.669Z] [LOG] [Bootstrap] [InstanceLoader] MessageBrokerModule dependencies initialized
-[2024-09-12T04:55:15.676Z] [LOG] [Bootstrap] [WebSocketsController] MessageBrokerGateway subscribed to the "subscribe" message
-[2024-09-12T04:55:15.677Z] [LOG] [Bootstrap] [RoutesResolver] AppController {/}:
-[2024-09-12T04:55:15.678Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/, GET} route
-[2024-09-12T04:55:15.678Z] [LOG] [Bootstrap] [RoutesResolver] MessageBrokerController {/message-broker}:
-[2024-09-12T04:55:15.678Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/exchange, POST} route
-[2024-09-12T04:55:15.678Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/bind, POST} route
-[2024-09-12T04:55:15.678Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/publish, POST} route
-[2024-09-12T04:55:15.679Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/consume/:exchange/:queue, GET} route
-[2024-09-12T04:55:15.679Z] [LOG] [Bootstrap] [RouterExplorer] Mapped {/message-broker/queue-length/:exchange/:queue, GET} route
-[2024-09-12T04:55:15.762Z] [LOG] [Bootstrap] [MessageStorageService] Successfully connected to the database
-[2024-09-12T04:55:15.763Z] [LOG] [Bootstrap] [NestApplication] Nest application successfully started
-[2024-09-12T04:55:38.951Z] [ERROR] [Bootstrap] [MessageStorageService] Failed to remove message: "[object Object]" is not valid JSON
-[2024-09-12T04:55:38.956Z] [ERROR] [Bootstrap] [MessageStorageService] Failed to remove message: "[object Object]" is not valid JSON
-[2024-09-12T04:55:38.959Z] [ERROR] [Bootstrap] [MessageStorageService] Failed to remove message: "[object Object]" is not valid JSON
+[7m5[0m   private client: Aerospike.Client;
+[7m [0m [91m                            ~~~~~~[0m
+
+[96msrc/message-storage/aerospike-adapter.ts[0m:[93m51[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'popLeft' does not exist on type 'typeof import("lists")'.
+
+[7m51[0m         Aerospike.lists.popLeft('messages', 1),
+[7m  [0m [91m                        ~~~~~~~[0m
+
+[[90m11:07:21 AM[0m] Found 2 errors. Watching for file changes.
+
+
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:consumer.stdout.txt">
 No message available
@@ -689,57 +916,173 @@ Published message 5
 Queue length: 5
 
 </FILE>
-<FILE path="src/message-storage/isdb-adapter.ts" TARGET>
-import { StorageAdapter } from './storage-adapter.interface';
-import { DatabaseClient } from 'database-client';
+<FILE path="/home/travis/Projects/message-queue/test:message-routing.stdout.txt">
+Exchange 'exchange1' created
+Exchange 'exchange2' created
+Queue 'queue1' bound to exchange 'exchange1'
+Queue 'queue2' bound to exchange 'exchange1'
+Queue 'queue3' bound to exchange 'exchange2'
+Queue 'queue4' bound to exchange 'exchange2'
+Connected to WebSocket server
+Subscription response for exchange1/queue1: { status: 'ok', message: 'Subscribed successfully' }
+Subscription response for exchange1/queue2: { status: 'ok', message: 'Subscribed successfully' }
+Subscription response for exchange2/queue3: { status: 'ok', message: 'Subscribed successfully' }
+Subscription response for exchange2/queue4: { status: 'ok', message: 'Subscribed successfully' }
+Published message to exchange 'exchange1', queue 'queue1': Message 1 for Queue 1
+Published message to exchange 'exchange1', queue 'queue2': Message 1 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 1 for Queue 1
+Published message to exchange 'exchange2', queue 'queue3': Message 1 for Queue 3
+Published message to exchange 'exchange2', queue 'queue4': Message 1 for Queue 4
+Received message via WebSocket from exchange2/queue3: Message 1 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 1 for Queue 2
+Published message to exchange 'exchange1', queue 'queue1': Message 2 for Queue 1
+Received message via WebSocket from exchange2/queue4: Message 1 for Queue 4
+Published message to exchange 'exchange1', queue 'queue2': Message 2 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 2 for Queue 1
+Published message to exchange 'exchange2', queue 'queue3': Message 2 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 2 for Queue 2
+Published message to exchange 'exchange2', queue 'queue4': Message 2 for Queue 4
+Received message via WebSocket from exchange2/queue3: Message 2 for Queue 3
+Published message to exchange 'exchange1', queue 'queue1': Message 3 for Queue 1
+Received message via WebSocket from exchange2/queue4: Message 2 for Queue 4
+Published message to exchange 'exchange1', queue 'queue2': Message 3 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 3 for Queue 1
+Published message to exchange 'exchange2', queue 'queue3': Message 3 for Queue 3
+Received message via WebSocket from exchange1/queue2: Message 3 for Queue 2
+Published message to exchange 'exchange1', queue 'queue1': Message 4 for Queue 1
+Received message via WebSocket from exchange2/queue3: Message 3 for Queue 3
+Published message to exchange 'exchange1', queue 'queue2': Message 4 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 4 for Queue 1
+Published message to exchange 'exchange1', queue 'queue1': Message 5 for Queue 1
+Received message via WebSocket from exchange1/queue2: Message 4 for Queue 2
+Received message via WebSocket from exchange1/queue1: Message 5 for Queue 1
 
-export class IsdbAdapter implements StorageAdapter {
-  private client: DatabaseClient;
-  private database: number;
-  private username: string;
-  private password: string;
+Summary of received messages:
+exchange1/queue1: 5 message(s)
+  1. Message 1 for Queue 1
+  2. Message 2 for Queue 1
+  3. Message 3 for Queue 1
+  4. Message 4 for Queue 1
+  5. Message 5 for Queue 1
+exchange2/queue3: 3 message(s)
+  1. Message 1 for Queue 3
+  2. Message 2 for Queue 3
+  3. Message 3 for Queue 3
+exchange1/queue2: 4 message(s)
+  1. Message 1 for Queue 2
+  2. Message 2 for Queue 2
+  3. Message 3 for Queue 2
+  4. Message 4 for Queue 2
+exchange2/queue4: 2 message(s)
+  1. Message 1 for Queue 4
+  2. Message 2 for Queue 4
+
+Message routing test completed.
+
+</FILE>
+<FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
+Connected to WebSocket server
+Subscription response: { status: 'ok', message: 'Subscribed successfully' }
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 1'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 2'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 3'
+}
+Received message via WebSocket: {
+  exchange: 'test-exchange',
+  queue: 'test-queue',
+  message: 'Test message 4'
+}
+
+</FILE>
+<FILE path="src/message-storage/aerospike-adapter.ts" TARGET>
+import { StorageAdapter } from './storage-adapter.interface';
+import Aerospike from 'aerospike';
+
+export class AerospikeAdapter implements StorageAdapter {
+  private client: Aerospike.Client;
+  private namespace: string;
+  private set: string;
 
   maxRetries = 5;
   initialRetryDelay = 1000;
 
-  constructor(config: { database: number; username: string; password: string }) {
-    this.database = config.database;
-    this.username = config.username;
-    this.password = config.password;
+  constructor(config: { hosts: string[]; namespace: string; set: string }) {
+    this.client = Aerospike.client({
+      hosts: config.hosts,
+    });
+    this.namespace = config.namespace;
+    this.set = config.set;
   }
 
   async connect(): Promise<void> {
-    this.client = new DatabaseClient('http://localhost:6969');
-    await this.client.createUser(this.username, this.password);
-    await this.client.login(this.username, this.password);
-    await this.client.assignUserToDatabase(this.database);
+    await this.client.connect();
   }
 
   async disconnect(): Promise<void> {
-    // Implement disconnect if needed
+    await this.client.close();
   }
 
   isConnected(): boolean {
-    return this.client ? true : false;
+    return this.client.isConnected();
   }
 
   async rpush(key: string, value: string): Promise<void> {
-    await this.client.rpush(this.database, key, [value]);
+    const aeroKey = new Aerospike.Key(this.namespace, this.set, key);
+    await this.client.operate(aeroKey, [
+      Aerospike.lists.append('messages', value),
+    ]);
   }
 
   async lrange(key: string, start: number, stop: number): Promise<string[]> {
-    return await this.client.lrange(this.database, key, start, stop);
+    const aeroKey = new Aerospike.Key(this.namespace, this.set, key);
+    const result = await this.client.operate(aeroKey, [
+      Aerospike.lists.getRange('messages', start, stop - start + 1),
+    ]);
+    return result.bins.messages as string[];
   }
 
   async lpop(key: string): Promise<string | null> {
-    return await this.client.lpop(this.database, key);
+    const aeroKey = new Aerospike.Key(this.namespace, this.set, key);
+    try {
+      const result = await this.client.operate(aeroKey, [
+        Aerospike.lists.popLeft('messages', 1),
+      ]);
+      return result.bins.messages[0] as string;
+    } catch (error) {
+      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async llen(key: string): Promise<number> {
-    return await this.client.llen(this.database, key);
+    const aeroKey = new Aerospike.Key(this.namespace, this.set, key);
+    try {
+      const result = await this.client.operate(aeroKey, [
+        Aerospike.lists.size('messages'),
+      ]);
+      return result.bins.messages as number;
+    } catch (error) {
+      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND) {
+        return 0;
+      }
+      throw error;
+    }
   }
 }
 </FILE>
 <REQUEST>
-Failed to remove message errors in stdout; work fine with redis adapter however.
+fix errors in stdout
 </REQUEST>

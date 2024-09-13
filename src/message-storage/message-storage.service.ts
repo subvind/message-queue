@@ -2,8 +2,10 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { StorageAdapter } from './storage-adapter.interface';
 import { IsdbAdapter } from './isdb-adapter';
 import { RedisAdapter } from './redis-adapter';
+import { AerospikeAdapter } from './aerospike-adapter';
+import { protocol } from 'socket.io-client';
 
-type StorageType = 'isdb' | 'redis';
+type StorageType = 'isdb' | 'redis' | 'asd';
 
 @Injectable()
 export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
@@ -12,11 +14,23 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   private reconnectionInterval: NodeJS.Timeout;
 
   constructor() {
-    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
+    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'asd';
     this.storageAdapter = this.createStorageAdapter(storageType);
   }
 
   private createStorageAdapter(storageType: StorageType): StorageAdapter {
+    let asdHosts;
+    if (process.env.AEROSPIKE_HOSTS) {
+      asdHosts = JSON.parse(process.env.AEROSPIKE_HOSTS);
+    } else {
+      asdHosts = [
+        {
+          protocol: 'http',
+          addr: '127.0.0.1',
+          port: 4242
+        }
+      ];
+    }
     switch (storageType) {
       case 'isdb':
         return new IsdbAdapter({
@@ -28,6 +42,12 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
         return new RedisAdapter({
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
+        });
+      case 'asd':
+        return new AerospikeAdapter({
+          hosts: asdHosts,
+          namespace: process.env.AEROSPIKE_NAMESPACE || 'test',
+          set: process.env.AEROSPIKE_SET || 'message-queue'
         });
       default:
         throw new Error(`Unsupported storage type: ${storageType}`);

@@ -46,7 +46,7 @@ async function runBenchmark(messageSize: number, numMessages: number): Promise<{
     });
 
     const message = generateMessage(messageSize);
-    for (let i = 0; i < numMessages + 1; i++) {
+    for (let i = 0; i < numMessages + 10; i++) {
       await client.publish(exchange, routingKey, message);
       if ((i + 1) % 100 === 0) {
         console.log(`Published ${i + 1} messages`);
