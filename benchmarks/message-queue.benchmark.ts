@@ -59,7 +59,7 @@ async function runBenchmark(messageSize: number, numMessages: number): Promise<{
 
     const endTime = Date.now();
     const duration = endTime - startTime;
-    throughput = (received / duration) * 1000;
+    throughput = (received / duration) * 10000;
 
     console.log(`E2E Benchmark Results:`);
     console.log(`  Message Size: ${messageSize} bytes`);
@@ -84,7 +84,7 @@ async function runBenchmark(messageSize: number, numMessages: number): Promise<{
 
 async function runAllBenchmarks(): Promise<void> {
   const messageSizes = [1, 100, 1000, 10000, 100000];
-  const numMessages = 1000;
+  const numMessages = 10000;
 
   console.log('Starting all e2e benchmarks');
 

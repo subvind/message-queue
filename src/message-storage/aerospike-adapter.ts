@@ -59,7 +59,8 @@ export class AerospikeAdapter implements StorageAdapter {
       ]);
       return result.bins.messages[0] as string;
     } catch (error) {
-      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND) {
+      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND || 
+          error.code === Aerospike.status.ERR_OP_NOT_APPLICABLE) {
         return null;
       }
       throw error;

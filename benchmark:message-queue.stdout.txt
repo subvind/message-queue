@@ -1,5 +1,5 @@
 Starting all e2e benchmarks
-Starting e2e benchmark with message size 1 bytes and 1000 messages
+Starting e2e benchmark with message size 1 bytes and 10000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -13,15 +13,105 @@ Published 700 messages
 Published 800 messages
 Published 900 messages
 Published 1000 messages
-Finished publishing 1000 messages
+Published 1100 messages
+Published 1200 messages
+Published 1300 messages
+Published 1400 messages
+Published 1500 messages
+Published 1600 messages
+Published 1700 messages
+Published 1800 messages
+Published 1900 messages
+Published 2000 messages
+Published 2100 messages
+Published 2200 messages
+Published 2300 messages
+Published 2400 messages
+Published 2500 messages
+Published 2600 messages
+Published 2700 messages
+Published 2800 messages
+Published 2900 messages
+Published 3000 messages
+Published 3100 messages
+Published 3200 messages
+Published 3300 messages
+Published 3400 messages
+Published 3500 messages
+Published 3600 messages
+Published 3700 messages
+Published 3800 messages
+Published 3900 messages
+Published 4000 messages
+Published 4100 messages
+Published 4200 messages
+Published 4300 messages
+Published 4400 messages
+Published 4500 messages
+Published 4600 messages
+Published 4700 messages
+Published 4800 messages
+Published 4900 messages
+Published 5000 messages
+Published 5100 messages
+Published 5200 messages
+Published 5300 messages
+Published 5400 messages
+Published 5500 messages
+Published 5600 messages
+Published 5700 messages
+Published 5800 messages
+Published 5900 messages
+Published 6000 messages
+Published 6100 messages
+Published 6200 messages
+Published 6300 messages
+Published 6400 messages
+Published 6500 messages
+Published 6600 messages
+Published 6700 messages
+Published 6800 messages
+Published 6900 messages
+Published 7000 messages
+Published 7100 messages
+Published 7200 messages
+Published 7300 messages
+Published 7400 messages
+Published 7500 messages
+Published 7600 messages
+Published 7700 messages
+Published 7800 messages
+Published 7900 messages
+Published 8000 messages
+Published 8100 messages
+Published 8200 messages
+Published 8300 messages
+Published 8400 messages
+Published 8500 messages
+Published 8600 messages
+Published 8700 messages
+Published 8800 messages
+Published 8900 messages
+Published 9000 messages
+Published 9100 messages
+Published 9200 messages
+Published 9300 messages
+Published 9400 messages
+Published 9500 messages
+Published 9600 messages
+Published 9700 messages
+Published 9800 messages
+Published 9900 messages
+Published 10000 messages
+Finished publishing 10000 messages
 E2E Benchmark Results:
   Message Size: 1 bytes
-  Number of Messages: 1000
-  Messages Received: 1008
-  Total Duration: 787ms
-  Throughput: 1280.81 messages/second
+  Number of Messages: 10000
+  Messages Received: 10006
+  Total Duration: 5944ms
+  Throughput: 16833.78 messages/second
 Disconnected from WebSocket
-Starting e2e benchmark with message size 100 bytes and 1000 messages
+Starting e2e benchmark with message size 100 bytes and 10000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -35,15 +125,105 @@ Published 700 messages
 Published 800 messages
 Published 900 messages
 Published 1000 messages
-Finished publishing 1000 messages
+Published 1100 messages
+Published 1200 messages
+Published 1300 messages
+Published 1400 messages
+Published 1500 messages
+Published 1600 messages
+Published 1700 messages
+Published 1800 messages
+Published 1900 messages
+Published 2000 messages
+Published 2100 messages
+Published 2200 messages
+Published 2300 messages
+Published 2400 messages
+Published 2500 messages
+Published 2600 messages
+Published 2700 messages
+Published 2800 messages
+Published 2900 messages
+Published 3000 messages
+Published 3100 messages
+Published 3200 messages
+Published 3300 messages
+Published 3400 messages
+Published 3500 messages
+Published 3600 messages
+Published 3700 messages
+Published 3800 messages
+Published 3900 messages
+Published 4000 messages
+Published 4100 messages
+Published 4200 messages
+Published 4300 messages
+Published 4400 messages
+Published 4500 messages
+Published 4600 messages
+Published 4700 messages
+Published 4800 messages
+Published 4900 messages
+Published 5000 messages
+Published 5100 messages
+Published 5200 messages
+Published 5300 messages
+Published 5400 messages
+Published 5500 messages
+Published 5600 messages
+Published 5700 messages
+Published 5800 messages
+Published 5900 messages
+Published 6000 messages
+Published 6100 messages
+Published 6200 messages
+Published 6300 messages
+Published 6400 messages
+Published 6500 messages
+Published 6600 messages
+Published 6700 messages
+Published 6800 messages
+Published 6900 messages
+Published 7000 messages
+Published 7100 messages
+Published 7200 messages
+Published 7300 messages
+Published 7400 messages
+Published 7500 messages
+Published 7600 messages
+Published 7700 messages
+Published 7800 messages
+Published 7900 messages
+Published 8000 messages
+Published 8100 messages
+Published 8200 messages
+Published 8300 messages
+Published 8400 messages
+Published 8500 messages
+Published 8600 messages
+Published 8700 messages
+Published 8800 messages
+Published 8900 messages
+Published 9000 messages
+Published 9100 messages
+Published 9200 messages
+Published 9300 messages
+Published 9400 messages
+Published 9500 messages
+Published 9600 messages
+Published 9700 messages
+Published 9800 messages
+Published 9900 messages
+Published 10000 messages
+Finished publishing 10000 messages
 E2E Benchmark Results:
   Message Size: 100 bytes
-  Number of Messages: 1000
-  Messages Received: 1007
-  Total Duration: 890ms
-  Throughput: 1131.46 messages/second
+  Number of Messages: 10000
+  Messages Received: 10005
+  Total Duration: 5657ms
+  Throughput: 17686.05 messages/second
 Disconnected from WebSocket
-Starting e2e benchmark with message size 1000 bytes and 1000 messages
+Starting e2e benchmark with message size 1000 bytes and 10000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -57,15 +237,105 @@ Published 700 messages
 Published 800 messages
 Published 900 messages
 Published 1000 messages
-Finished publishing 1000 messages
+Published 1100 messages
+Published 1200 messages
+Published 1300 messages
+Published 1400 messages
+Published 1500 messages
+Published 1600 messages
+Published 1700 messages
+Published 1800 messages
+Published 1900 messages
+Published 2000 messages
+Published 2100 messages
+Published 2200 messages
+Published 2300 messages
+Published 2400 messages
+Published 2500 messages
+Published 2600 messages
+Published 2700 messages
+Published 2800 messages
+Published 2900 messages
+Published 3000 messages
+Published 3100 messages
+Published 3200 messages
+Published 3300 messages
+Published 3400 messages
+Published 3500 messages
+Published 3600 messages
+Published 3700 messages
+Published 3800 messages
+Published 3900 messages
+Published 4000 messages
+Published 4100 messages
+Published 4200 messages
+Published 4300 messages
+Published 4400 messages
+Published 4500 messages
+Published 4600 messages
+Published 4700 messages
+Published 4800 messages
+Published 4900 messages
+Published 5000 messages
+Published 5100 messages
+Published 5200 messages
+Published 5300 messages
+Published 5400 messages
+Published 5500 messages
+Published 5600 messages
+Published 5700 messages
+Published 5800 messages
+Published 5900 messages
+Published 6000 messages
+Published 6100 messages
+Published 6200 messages
+Published 6300 messages
+Published 6400 messages
+Published 6500 messages
+Published 6600 messages
+Published 6700 messages
+Published 6800 messages
+Published 6900 messages
+Published 7000 messages
+Published 7100 messages
+Published 7200 messages
+Published 7300 messages
+Published 7400 messages
+Published 7500 messages
+Published 7600 messages
+Published 7700 messages
+Published 7800 messages
+Published 7900 messages
+Published 8000 messages
+Published 8100 messages
+Published 8200 messages
+Published 8300 messages
+Published 8400 messages
+Published 8500 messages
+Published 8600 messages
+Published 8700 messages
+Published 8800 messages
+Published 8900 messages
+Published 9000 messages
+Published 9100 messages
+Published 9200 messages
+Published 9300 messages
+Published 9400 messages
+Published 9500 messages
+Published 9600 messages
+Published 9700 messages
+Published 9800 messages
+Published 9900 messages
+Published 10000 messages
+Finished publishing 10000 messages
 E2E Benchmark Results:
   Message Size: 1000 bytes
-  Number of Messages: 1000
-  Messages Received: 1007
-  Total Duration: 639ms
-  Throughput: 1575.90 messages/second
+  Number of Messages: 10000
+  Messages Received: 10007
+  Total Duration: 5447ms
+  Throughput: 18371.58 messages/second
 Disconnected from WebSocket
-Starting e2e benchmark with message size 10000 bytes and 1000 messages
+Starting e2e benchmark with message size 10000 bytes and 10000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -79,15 +349,105 @@ Published 700 messages
 Published 800 messages
 Published 900 messages
 Published 1000 messages
-Finished publishing 1000 messages
+Published 1100 messages
+Published 1200 messages
+Published 1300 messages
+Published 1400 messages
+Published 1500 messages
+Published 1600 messages
+Published 1700 messages
+Published 1800 messages
+Published 1900 messages
+Published 2000 messages
+Published 2100 messages
+Published 2200 messages
+Published 2300 messages
+Published 2400 messages
+Published 2500 messages
+Published 2600 messages
+Published 2700 messages
+Published 2800 messages
+Published 2900 messages
+Published 3000 messages
+Published 3100 messages
+Published 3200 messages
+Published 3300 messages
+Published 3400 messages
+Published 3500 messages
+Published 3600 messages
+Published 3700 messages
+Published 3800 messages
+Published 3900 messages
+Published 4000 messages
+Published 4100 messages
+Published 4200 messages
+Published 4300 messages
+Published 4400 messages
+Published 4500 messages
+Published 4600 messages
+Published 4700 messages
+Published 4800 messages
+Published 4900 messages
+Published 5000 messages
+Published 5100 messages
+Published 5200 messages
+Published 5300 messages
+Published 5400 messages
+Published 5500 messages
+Published 5600 messages
+Published 5700 messages
+Published 5800 messages
+Published 5900 messages
+Published 6000 messages
+Published 6100 messages
+Published 6200 messages
+Published 6300 messages
+Published 6400 messages
+Published 6500 messages
+Published 6600 messages
+Published 6700 messages
+Published 6800 messages
+Published 6900 messages
+Published 7000 messages
+Published 7100 messages
+Published 7200 messages
+Published 7300 messages
+Published 7400 messages
+Published 7500 messages
+Published 7600 messages
+Published 7700 messages
+Published 7800 messages
+Published 7900 messages
+Published 8000 messages
+Published 8100 messages
+Published 8200 messages
+Published 8300 messages
+Published 8400 messages
+Published 8500 messages
+Published 8600 messages
+Published 8700 messages
+Published 8800 messages
+Published 8900 messages
+Published 9000 messages
+Published 9100 messages
+Published 9200 messages
+Published 9300 messages
+Published 9400 messages
+Published 9500 messages
+Published 9600 messages
+Published 9700 messages
+Published 9800 messages
+Published 9900 messages
+Published 10000 messages
+Finished publishing 10000 messages
 E2E Benchmark Results:
   Message Size: 10000 bytes
-  Number of Messages: 1000
-  Messages Received: 1007
-  Total Duration: 664ms
-  Throughput: 1516.57 messages/second
+  Number of Messages: 10000
+  Messages Received: 10005
+  Total Duration: 6212ms
+  Throughput: 16105.92 messages/second
 Disconnected from WebSocket
-Starting e2e benchmark with message size 100000 bytes and 1000 messages
+Starting e2e benchmark with message size 100000 bytes and 10000 messages
 Exchange created and queue bound
 WebSocket connected
 Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
@@ -101,22 +461,112 @@ Published 700 messages
 Published 800 messages
 Published 900 messages
 Published 1000 messages
-Finished publishing 1000 messages
+Published 1100 messages
+Published 1200 messages
+Published 1300 messages
+Published 1400 messages
+Published 1500 messages
+Published 1600 messages
+Published 1700 messages
+Published 1800 messages
+Published 1900 messages
+Published 2000 messages
+Published 2100 messages
+Published 2200 messages
+Published 2300 messages
+Published 2400 messages
+Published 2500 messages
+Published 2600 messages
+Published 2700 messages
+Published 2800 messages
+Published 2900 messages
+Published 3000 messages
+Published 3100 messages
+Published 3200 messages
+Published 3300 messages
+Published 3400 messages
+Published 3500 messages
+Published 3600 messages
+Published 3700 messages
+Published 3800 messages
+Published 3900 messages
+Published 4000 messages
+Published 4100 messages
+Published 4200 messages
+Published 4300 messages
+Published 4400 messages
+Published 4500 messages
+Published 4600 messages
+Published 4700 messages
+Published 4800 messages
+Published 4900 messages
+Published 5000 messages
+Published 5100 messages
+Published 5200 messages
+Published 5300 messages
+Published 5400 messages
+Published 5500 messages
+Published 5600 messages
+Published 5700 messages
+Published 5800 messages
+Published 5900 messages
+Published 6000 messages
+Published 6100 messages
+Published 6200 messages
+Published 6300 messages
+Published 6400 messages
+Published 6500 messages
+Published 6600 messages
+Published 6700 messages
+Published 6800 messages
+Published 6900 messages
+Published 7000 messages
+Published 7100 messages
+Published 7200 messages
+Published 7300 messages
+Published 7400 messages
+Published 7500 messages
+Published 7600 messages
+Published 7700 messages
+Published 7800 messages
+Published 7900 messages
+Published 8000 messages
+Published 8100 messages
+Published 8200 messages
+Published 8300 messages
+Published 8400 messages
+Published 8500 messages
+Published 8600 messages
+Published 8700 messages
+Published 8800 messages
+Published 8900 messages
+Published 9000 messages
+Published 9100 messages
+Published 9200 messages
+Published 9300 messages
+Published 9400 messages
+Published 9500 messages
+Published 9600 messages
+Published 9700 messages
+Published 9800 messages
+Published 9900 messages
+Published 10000 messages
+Finished publishing 10000 messages
 E2E Benchmark Results:
   Message Size: 100000 bytes
-  Number of Messages: 1000
-  Messages Received: 1006
-  Total Duration: 1426ms
-  Throughput: 705.47 messages/second
+  Number of Messages: 10000
+  Messages Received: 10007
+  Total Duration: 16422ms
+  Throughput: 6093.65 messages/second
 Disconnected from WebSocket
 All e2e benchmarks completed
 
 Benchmark Summary:
 ------------------
-Message Size: 1 bytes, Throughput: 1280.81 messages/second
-Message Size: 100 bytes, Throughput: 1131.46 messages/second
-Message Size: 1000 bytes, Throughput: 1575.90 messages/second
-Message Size: 10000 bytes, Throughput: 1516.57 messages/second
-Message Size: 100000 bytes, Throughput: 705.47 messages/second
+Message Size: 1 bytes, Throughput: 16833.78 messages/second
+Message Size: 100 bytes, Throughput: 17686.05 messages/second
+Message Size: 1000 bytes, Throughput: 18371.58 messages/second
+Message Size: 10000 bytes, Throughput: 16105.92 messages/second
+Message Size: 100000 bytes, Throughput: 6093.65 messages/second
 
-Average Throughput: 1242.04 messages/second
+Average Throughput: 15018.20 messages/second

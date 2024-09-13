@@ -31,6 +31,7 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
         }
       ];
     }
+    console.log('storageType', storageType);
     switch (storageType) {
       case 'isdb':
         return new IsdbAdapter({

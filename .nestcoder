@@ -290,8 +290,10 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { StorageAdapter } from './storage-adapter.interface';
 import { IsdbAdapter } from './isdb-adapter';
 import { RedisAdapter } from './redis-adapter';
+import { AerospikeAdapter } from './aerospike-adapter';
+import { protocol } from 'socket.io-client';
 
-type StorageType = 'isdb' | 'redis';
+type StorageType = 'isdb' | 'redis' | 'asd';
 
 @Injectable()
 export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
@@ -300,11 +302,23 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   private reconnectionInterval: NodeJS.Timeout;
 
   constructor() {
-    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'isdb';
+    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'asd';
     this.storageAdapter = this.createStorageAdapter(storageType);
   }
 
   private createStorageAdapter(storageType: StorageType): StorageAdapter {
+    let asdHosts;
+    if (process.env.AEROSPIKE_HOSTS) {
+      asdHosts = JSON.parse(process.env.AEROSPIKE_HOSTS);
+    } else {
+      asdHosts = [
+        {
+          protocol: 'http',
+          addr: '127.0.0.1',
+          port: 4242
+        }
+      ];
+    }
     switch (storageType) {
       case 'isdb':
         return new IsdbAdapter({
@@ -316,6 +330,12 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
         return new RedisAdapter({
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
+        });
+      case 'asd':
+        return new AerospikeAdapter({
+          hosts: asdHosts,
+          namespace: process.env.AEROSPIKE_NAMESPACE || 'test',
+          set: process.env.AEROSPIKE_SET || 'message-queue'
         });
       default:
         throw new Error(`Unsupported storage type: ${storageType}`);
@@ -505,240 +525,6 @@ export class IsdbAdapter implements StorageAdapter {
   }
 }
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.service.ts">
-import { Injectable } from '@nestjs/common';
-import { MessageStorageService } from '../message-storage/message-storage.service';
-import { Exchange } from '../exchange/exchange';
-import { EventEmitter } from 'events';
-
-@Injectable()
-export class MessageBrokerService {
-  private exchanges: Map<string, Exchange> = new Map();
-  private eventEmitter: EventEmitter = new EventEmitter();
-
-  constructor(private messageStorage: MessageStorageService) {}
-
-  createExchange(name: string): Exchange {
-    if (!this.exchanges.has(name)) {
-      const exchange = new Exchange(name, this.messageStorage);
-      this.exchanges.set(name, exchange);
-      return exchange;
-    }
-    return this.exchanges.get(name);
-  }
-
-  getExchange(name: string): Exchange | undefined {
-    return this.exchanges.get(name);
-  }
-
-  async publish(exchangeName: string, routingKey: string, message: any): Promise<boolean> {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      await exchange.publish(routingKey, message);
-      // Emit the message to all bound queues
-      const boundQueues = exchange.getBoundQueues(routingKey);
-      for (const queue of boundQueues) {
-        this.eventEmitter.emit('message', exchangeName, queue, message);
-      }
-      // console.log(`Published message to ${exchangeName}/${routingKey}:`, message);
-      return true;
-    }
-    return false;
-  }
-
-  async consume(exchangeName: string, queueName: string): Promise<any> {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      return await exchange.consume(queueName);
-    }
-    return null;
-  }
-
-  bind(exchangeName: string, queueName: string, routingKey: string): boolean {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      exchange.bind(queueName, routingKey);
-      return true;
-    }
-    return false;
-  }
-
-  subscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
-    // console.log(`Subscribing to ${exchangeName}/${queueName}`);
-    this.eventEmitter.on('message', (exchange, queue, message) => {
-      if (exchange === exchangeName && queue === queueName) {
-        callback(message);
-      }
-    });
-    return true;
-  }
-
-  unsubscribe(exchangeName: string, queueName: string, callback: (message: any) => void): boolean {
-    this.eventEmitter.removeListener('message', callback);
-    return true;
-  }
-
-  async getQueueLength(exchangeName: string, queueName: string): Promise<number> {
-    const exchange = this.getExchange(exchangeName);
-    if (exchange) {
-      return await exchange.getQueueLength(queueName);
-    }
-    return 0;
-  }
-
-  onMessage(callback: (exchange: string, queue: string, message: any) => void) {
-    this.eventEmitter.on('message', callback);
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.controller.ts">
-
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-
-@Controller('message-broker')
-export class MessageBrokerController {
-  constructor(private readonly messageBrokerService: MessageBrokerService) {}
-
-  @Post('exchange')
-  createExchange(@Body('name') name: string) {
-    this.messageBrokerService.createExchange(name);
-    return { status: 'ok', message: `Exchange ${name} created` };
-  }
-
-  @Post('bind')
-  bind(
-    @Body('exchange') exchange: string,
-    @Body('queue') queue: string,
-    @Body('routingKey') routingKey: string,
-  ) {
-    const result = this.messageBrokerService.bind(exchange, queue, routingKey);
-    return result
-      ? { status: 'ok', message: 'Binding created' }
-      : { status: 'error', message: 'Exchange not found' };
-  }
-
-  @Post('publish')
-  publish(
-    @Body('exchange') exchange: string,
-    @Body('routingKey') routingKey: string,
-    @Body('message') message: any,
-  ) {
-    const result = this.messageBrokerService.publish(exchange, routingKey, message);
-    return result
-      ? { status: 'ok', message: 'Message published' }
-      : { status: 'error', message: 'Exchange not found' };
-  }
-
-  @Get('consume/:exchange/:queue')
-  async consume(
-    @Param('exchange') exchange: string,
-    @Param('queue') queue: string,
-  ) {
-    const message = await this.messageBrokerService.consume(exchange, queue);
-    return message
-      ? { status: 'ok', message }
-      : { status: 'error', message: 'No message available or exchange/queue not found' };
-  }
-
-  @Get('queue-length/:exchange/:queue')
-  async getQueueLength(
-    @Param('exchange') exchange: string,
-    @Param('queue') queue: string,
-  ) {
-    const length = await this.messageBrokerService.getQueueLength(exchange, queue);
-    return { status: 'ok', length };
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.gateway.ts">
-import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  WebSocketServer,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { MessageBrokerService } from './message-broker.service';
-
-@WebSocketGateway()
-export class MessageBrokerGateway {
-  @WebSocketServer()
-  server: Server;
-
-  private subscriptions: Map<string, Set<Socket>> = new Map();
-
-  constructor(private readonly messageBrokerService: MessageBrokerService) {
-    this.subscribeToAllExchanges();
-  }
-
-  private subscribeToAllExchanges() {
-    this.messageBrokerService.onMessage(async (exchange, queue, message) => {
-      const subscriptionKey = `${exchange}:${queue}`;
-      const subscribers = this.subscriptions.get(subscriptionKey);
-      if (subscribers) {
-        // Consume the message from the queue
-        await this.messageBrokerService.consume(exchange, queue);
-        subscribers.forEach(subscriber => {
-          subscriber.emit('message', { exchange, queue, message });
-        });
-      }
-    });
-  }
-
-  @SubscribeMessage('subscribe')
-  handleSubscribe(
-    @MessageBody() data: { exchange: string; queue: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const { exchange, queue } = data;
-    const subscriptionKey = `${exchange}:${queue}`;
-
-    if (!this.subscriptions.has(subscriptionKey)) {
-      this.subscriptions.set(subscriptionKey, new Set());
-    }
-
-    this.subscriptions.get(subscriptionKey).add(client);
-
-    const success = this.messageBrokerService.subscribe(exchange, queue, (message) => {
-      // this emit is already in messageBrokerService.onMessage
-      // adding it will only cause duplicate messages
-      // client.emit('message', { exchange, queue, message });
-    });
-
-    if (success) {
-      client.on('disconnect', () => {
-        const subscribers = this.subscriptions.get(subscriptionKey);
-        if (subscribers) {
-          subscribers.delete(client);
-          if (subscribers.size === 0) {
-            this.subscriptions.delete(subscriptionKey);
-          }
-        }
-        this.messageBrokerService.unsubscribe(exchange, queue, () => {});
-      });
-      return { status: 'ok', message: 'Subscribed successfully' };
-    } else {
-      return { status: 'error', message: 'Failed to subscribe' };
-    }
-  }
-}
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/message-broker/message-broker.module.ts">
-import { Module } from '@nestjs/common';
-import { MessageBrokerService } from './message-broker.service';
-import { MessageBrokerController } from './message-broker.controller';
-import { MessageBrokerGateway } from './message-broker.gateway';
-import { MessageStorageService } from '../message-storage/message-storage.service';
-
-@Module({
-  providers: [MessageBrokerService, MessageBrokerGateway, MessageStorageService],
-  controllers: [MessageBrokerController],
-})
-export class MessageBrokerModule {}
-
-</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/logger/custom-logger.ts">
 import { ConsoleLogger, Injectable, Inject } from '@nestjs/common';
 import * as fs from 'fs';
@@ -808,6 +594,20 @@ export class CustomLogger extends ConsoleLogger {
   }
 }
 </FILE>
+<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MessageBrokerModule } from './message-broker/message-broker.module';
+
+@Module({
+  imports: [MessageBrokerModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/src/main.ts">
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -843,77 +643,146 @@ const logger = new CustomLogger('Bootstrap');
 bootstrap(logger);
 
 </FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.module.ts">
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MessageBrokerModule } from './message-broker/message-broker.module';
+<FILE path="/home/travis/Projects/message-queue/benchmark:message-queue.stdout.txt">
+Starting all e2e benchmarks
+Starting e2e benchmark with message size 1 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 1 bytes
+  Number of Messages: 1000
+  Messages Received: 1008
+  Total Duration: 787ms
+  Throughput: 1280.81 messages/second
+Disconnected from WebSocket
+Starting e2e benchmark with message size 100 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 100 bytes
+  Number of Messages: 1000
+  Messages Received: 1007
+  Total Duration: 890ms
+  Throughput: 1131.46 messages/second
+Disconnected from WebSocket
+Starting e2e benchmark with message size 1000 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 1000 bytes
+  Number of Messages: 1000
+  Messages Received: 1007
+  Total Duration: 639ms
+  Throughput: 1575.90 messages/second
+Disconnected from WebSocket
+Starting e2e benchmark with message size 10000 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 10000 bytes
+  Number of Messages: 1000
+  Messages Received: 1007
+  Total Duration: 664ms
+  Throughput: 1516.57 messages/second
+Disconnected from WebSocket
+Starting e2e benchmark with message size 100000 bytes and 1000 messages
+Exchange created and queue bound
+WebSocket connected
+Subscription response for benchmark_exchange/benchmark_queue: { status: 'ok', message: 'Subscribed successfully' }
+Published 100 messages
+Published 200 messages
+Published 300 messages
+Published 400 messages
+Published 500 messages
+Published 600 messages
+Published 700 messages
+Published 800 messages
+Published 900 messages
+Published 1000 messages
+Finished publishing 1000 messages
+E2E Benchmark Results:
+  Message Size: 100000 bytes
+  Number of Messages: 1000
+  Messages Received: 1006
+  Total Duration: 1426ms
+  Throughput: 705.47 messages/second
+Disconnected from WebSocket
+All e2e benchmarks completed
 
-@Module({
-  imports: [MessageBrokerModule],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
+Benchmark Summary:
+------------------
+Message Size: 1 bytes, Throughput: 1280.81 messages/second
+Message Size: 100 bytes, Throughput: 1131.46 messages/second
+Message Size: 1000 bytes, Throughput: 1575.90 messages/second
+Message Size: 10000 bytes, Throughput: 1516.57 messages/second
+Message Size: 100000 bytes, Throughput: 705.47 messages/second
 
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.service.ts">
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class AppService {
-  getHello(): string {
-    return 'Hello World!';
-  }
-}
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/src/app.controller.ts">
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-}
+Average Throughput: 1242.04 messages/second
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/start:dev.stdout.txt">
-c[[90m11:07:19 AM[0m] Starting compilation in watch mode...
+c[[90m12:09:09 PM[0m] Starting compilation in watch mode...
 
-[96msrc/message-storage/aerospike-adapter.ts[0m:[93m5[0m:[93m29[0m - [91merror[0m[90m TS2724: [0m'"aerospike"' has no exported member named 'Client'. Did you mean 'client'?
+[96msrc/message-storage/aerospike-adapter.ts[0m:[93m58[0m:[93m70[0m - [91merror[0m[90m TS2339: [0mProperty 'returnType' does not exist on type 'typeof import("lists")'.
 
-[7m5[0m   private client: Aerospike.Client;
-[7m [0m [91m                            ~~~~~~[0m
+[7m58[0m         Aerospike.lists.removeByIndex('messages', 0, Aerospike.lists.returnType.VALUE),
+[7m  [0m [91m                                                                     ~~~~~~~~~~[0m
 
-[96msrc/message-storage/aerospike-adapter.ts[0m:[93m51[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'popLeft' does not exist on type 'typeof import("lists")'.
-
-[7m51[0m         Aerospike.lists.popLeft('messages', 1),
-[7m  [0m [91m                        ~~~~~~~[0m
-
-[[90m11:07:21 AM[0m] Found 2 errors. Watching for file changes.
+[[90m12:09:11 PM[0m] Found 1 error. Watching for file changes.
 
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:consumer.stdout.txt">
 No message available
 No message available
-
-</FILE>
-<FILE path="/home/travis/Projects/message-queue/test:producer.stdout.txt">
-Exchange created
-Queue bound to exchange
-Published message 1
-Published message 2
-Published message 3
-Published message 4
-Published message 5
-Queue length: 5
 
 </FILE>
 <FILE path="/home/travis/Projects/message-queue/test:message-routing.stdout.txt">
@@ -980,6 +849,17 @@ exchange2/queue4: 2 message(s)
 Message routing test completed.
 
 </FILE>
+<FILE path="/home/travis/Projects/message-queue/test:producer.stdout.txt">
+Exchange created
+Queue bound to exchange
+Published message 1
+Published message 2
+Published message 3
+Published message 4
+Published message 5
+Queue length: 5
+
+</FILE>
 <FILE path="/home/travis/Projects/message-queue/test:websocket-client.stdout.txt">
 Connected to WebSocket server
 Subscription response: { status: 'ok', message: 'Subscribed successfully' }
@@ -1007,10 +887,12 @@ Received message via WebSocket: {
 </FILE>
 <FILE path="src/message-storage/aerospike-adapter.ts" TARGET>
 import { StorageAdapter } from './storage-adapter.interface';
-import Aerospike from 'aerospike';
+import * as Aerospike from 'aerospike';
 
 export class AerospikeAdapter implements StorageAdapter {
-  private client: Aerospike.Client;
+  private config;
+  private aerospike = Aerospike;
+  private client;
   private namespace: string;
   private set: string;
 
@@ -1018,23 +900,28 @@ export class AerospikeAdapter implements StorageAdapter {
   initialRetryDelay = 1000;
 
   constructor(config: { hosts: string[]; namespace: string; set: string }) {
-    this.client = Aerospike.client({
-      hosts: config.hosts,
-    });
+    this.config = config;
     this.namespace = config.namespace;
     this.set = config.set;
   }
 
   async connect(): Promise<void> {
-    await this.client.connect();
+    await this.aerospike.connect({
+      hosts: this.config.hosts,
+    })
+    .then(async client => {
+      this.client = client;
+    })
+    .catch(err => console.error(err))
   }
 
   async disconnect(): Promise<void> {
     await this.client.close();
+    this.client = null;
   }
 
   isConnected(): boolean {
-    return this.client.isConnected();
+    return this.client ? true : false;
   }
 
   async rpush(key: string, value: string): Promise<void> {
@@ -1056,11 +943,12 @@ export class AerospikeAdapter implements StorageAdapter {
     const aeroKey = new Aerospike.Key(this.namespace, this.set, key);
     try {
       const result = await this.client.operate(aeroKey, [
-        Aerospike.lists.popLeft('messages', 1),
+        Aerospike.lists.removeByIndex('messages', 0, Aerospike.lists.returnType.VALUE),
       ]);
-      return result.bins.messages[0] as string;
+      return result.bins.messages as string;
     } catch (error) {
-      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND) {
+      if (error.code === Aerospike.status.ERR_BIN_NOT_FOUND || 
+          error.code === Aerospike.status.ERR_OP_NOT_APPLICABLE) {
         return null;
       }
       throw error;
@@ -1084,5 +972,5 @@ export class AerospikeAdapter implements StorageAdapter {
 }
 </FILE>
 <REQUEST>
-fix errors in stdout
+fix error in stdout
 </REQUEST>
