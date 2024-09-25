@@ -14,7 +14,7 @@ export class MessageStorageService implements OnModuleInit, OnModuleDestroy {
   private reconnectionInterval: NodeJS.Timeout;
 
   constructor() {
-    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'asd';
+    const storageType = (process.env.STORAGE_TYPE as StorageType) || 'redis';
     this.storageAdapter = this.createStorageAdapter(storageType);
   }
 
